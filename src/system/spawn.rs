@@ -5,20 +5,22 @@ use crate::component::{
     fireball::{Fireball, FireballAnimation},
     orb::Orb,
     player::{Player, PlayerAnimation, PlayerAttackMode},
+    spell::Spell,
 };
 
 pub fn fire_fireballs(
-    keyboard_input: Res<ButtonInput<KeyCode>>,
+    time: Res<Time>,
     mut commands: Commands,
-    mut player_query: Query<(&Transform, &Sprite, &mut PlayerAnimation), With<Player>>,
+    mut player_query: Query<(&Transform, &Sprite, &mut PlayerAnimation, &mut Player)>,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
     enemy_query: Query<&Transform, With<Enemy>>,
 ) {
-    if keyboard_input.just_pressed(KeyCode::KeyX) {
-        if let (Ok((player_transform, sprite, mut player_animation)), Ok(enemy_transform)) =
-            (player_query.get_single_mut(), enemy_query.get_single())
-        {
+    if let (Ok((player_transform, sprite, mut player_animation, mut player)), Ok(enemy_transform)) =
+        (player_query.get_single_mut(), enemy_query.get_single())
+    {
+        player.fireball_timer.tick(time.delta());
+        if player.fireball_timer.just_finished() {
             if matches!(player_animation.attack_mode, PlayerAttackMode::None) {
                 player_animation.attack_mode = PlayerAttackMode::Fireball;
                 player_animation.first_frame = 36;
@@ -68,6 +70,7 @@ pub fn fire_fireballs(
                         first_frame: 5,
                         last_frame: 6,
                     },
+                    Spell { damage: 10.0 },
                 ));
             }
         }
@@ -75,15 +78,17 @@ pub fn fire_fireballs(
 }
 
 pub fn fire_orbs(
-    keyboard_input: Res<ButtonInput<KeyCode>>,
+    time: Res<Time>,
     mut commands: Commands,
-    mut player_query: Query<(&Transform, &Sprite, &mut PlayerAnimation), With<Player>>,
+    mut player_query: Query<(&Transform, &Sprite, &mut PlayerAnimation, &mut Player)>,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
 ) {
-    if keyboard_input.just_pressed(KeyCode::KeyZ) {
-        if let Ok((player_transform, sprite, mut player_animation)) = player_query.get_single_mut()
-        {
+    if let Ok((player_transform, sprite, mut player_animation, mut player)) =
+        player_query.get_single_mut()
+    {
+        player.orb_timer.tick(time.delta());
+        if player.orb_timer.just_finished() {
             if matches!(player_animation.attack_mode, PlayerAttackMode::None) {
                 player_animation.attack_mode = PlayerAttackMode::Orb;
                 player_animation.first_frame = 60;
@@ -117,6 +122,7 @@ pub fn fire_orbs(
                         ..Default::default()
                     },
                     Orb,
+                    Spell { damage: 15.0 },
                 ));
             }
         }

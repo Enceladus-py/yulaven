@@ -1,7 +1,9 @@
 use bevy::prelude::*;
 
 use crate::component::{
-    camera::MainCamera, enemy::Enemy, player::{Player, PlayerAnimation, PlayerAttackMode}
+    camera::MainCamera,
+    enemy::Enemy,
+    player::{Player, PlayerAnimation, PlayerAttackMode},
 };
 
 // Setup the game: spawn the camera and player entity
@@ -33,6 +35,7 @@ pub fn setup(
         },
         Player {
             facing_direction: Vec2::new(1.0, 0.0), // facing right
+            ..Default::default()
         },
         PlayerAnimation {
             timer: Timer::from_seconds(0.1, TimerMode::Repeating),
