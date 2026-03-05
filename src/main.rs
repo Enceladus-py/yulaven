@@ -12,7 +12,7 @@ use system::{
     startup::setup,
     ui::{
         handle_restart, handle_skill_selection, spawn_gameover_menu, spawn_hud, spawn_levelup_menu,
-        transition_to_levelup, update_hud,
+        spawn_weapon_hud, transition_to_levelup, update_hud, update_weapon_hud,
     },
 };
 
@@ -37,7 +37,7 @@ fn main() {
         .init_resource::<EnemySpawnTimer>()
         .init_resource::<GameTimer>()
         .init_state::<GameState>()
-        .add_systems(Startup, (setup, spawn_hud))
+        .add_systems(Startup, (setup, spawn_hud, spawn_weapon_hud))
         .add_systems(
             Update,
             (
@@ -54,6 +54,7 @@ fn main() {
                 handle_death,
                 collect_gems,
                 update_hud,
+                update_weapon_hud,
             )
                 .run_if(in_state(GameState::Playing)),
         )

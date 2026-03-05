@@ -3,6 +3,8 @@ use rand::Rng;
 
 use crate::component::{enemy::Enemy, health::Health, player::Player};
 
+const AGGRO_RADIUS: f32 = 600.0;
+
 #[derive(Resource)]
 pub struct EnemySpawnTimer(pub Timer);
 
@@ -31,8 +33,8 @@ pub fn spawn_enemies(
     game_timer.0.tick(time.delta());
     if game_timer.0.just_finished() {
         let current_duration = spawn_timer.0.duration().as_secs_f32();
-        if current_duration > 0.2 {
-            // Decrease spawn interval by 2% every second
+        if current_duration > 0.5 {
+            // Decrease spawn interval by 2% every second, soft-capped at 0.5s
             spawn_timer
                 .0
                 .set_duration(std::time::Duration::from_secs_f32(current_duration * 0.98));
@@ -60,25 +62,36 @@ pub fn spawn_enemies(
             ..Default::default()
         },
         Transform::from_translation(spawn_pos),
-        Enemy,
+        Enemy { active: false },
         Health(30.0),
     ));
 }
 
 pub fn move_enemies(
-    mut enemy_query: Query<(&mut Transform, &Enemy), With<Enemy>>,
+    mut enemy_query: Query<(&mut Transform, &mut Enemy)>,
     player_query: Query<&Transform, (With<Player>, Without<Enemy>)>,
     time: Res<Time>,
 ) {
-    if let Ok(player_transform) = player_query.get_single() {
-        for (mut enemy_transform, _enemy) in &mut enemy_query {
-            let direction = (player_transform.translation - enemy_transform.translation).truncate();
-            let distance = direction.length();
-            if distance > 0.0 {
-                let move_dir = direction.normalize();
-                let speed = 50.0;
-                enemy_transform.translation += move_dir.extend(0.0) * speed * time.delta_secs();
-            }
+    let Ok(player_transform) = player_query.get_single() else {
+        return;
+    };
+    for (mut enemy_transform, mut enemy) in &mut enemy_query {
+        let direction = (player_transform.translation - enemy_transform.translation).truncate();
+        let distance = direction.length();
+
+        // Activate within aggro radius, deactivate outside 1.2× radius (hysteresis)
+        enemy.active = if distance < AGGRO_RADIUS {
+            true
+        } else if distance > AGGRO_RADIUS * 1.2 {
+            false
+        } else {
+            enemy.active
+        };
+
+        if enemy.active && distance > 0.0 {
+            let move_dir = direction.normalize();
+            let speed = 50.0;
+            enemy_transform.translation += move_dir.extend(0.0) * speed * time.delta_secs();
         }
     }
 }

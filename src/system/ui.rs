@@ -30,6 +30,12 @@ pub struct HealthBarFill;
 #[derive(Component)]
 pub struct XpBarFill;
 
+#[derive(Component)]
+pub struct OrbCooldownFill;
+
+#[derive(Component)]
+pub struct FireballChargeFill;
+
 // ── HUD ─────────────────────────────────────────────────────────────────────
 
 pub fn spawn_hud(mut commands: Commands) {
@@ -148,7 +154,126 @@ pub fn update_hud(
     }
 }
 
-// ── Level-up ────────────────────────────────────────────────────────────────
+// ── Weapon cooldown HUD (bottom-right) ──────────────────────────────────────
+
+pub fn spawn_weapon_hud(mut commands: Commands) {
+    commands
+        .spawn(Node {
+            position_type: PositionType::Absolute,
+            right: Val::Px(16.0),
+            bottom: Val::Px(16.0),
+            flex_direction: FlexDirection::Column,
+            row_gap: Val::Px(10.0),
+            ..Default::default()
+        })
+        .with_children(|root| {
+            // ── Orb card ───────────────────────────────────────────────────
+            weapon_card(root, "🔵 ORB", Color::srgb(0.2, 0.5, 1.0), |track| {
+                track.spawn((
+                    Node {
+                        width: Val::Percent(100.0),
+                        height: Val::Percent(100.0),
+                        ..Default::default()
+                    },
+                    BackgroundColor(Color::srgb(0.2, 0.55, 1.0)),
+                    OrbCooldownFill,
+                ));
+            });
+
+            // ── Fireball card ──────────────────────────────────────────────
+            weapon_card(root, "🔥 FIREBALL", Color::srgb(0.5, 0.2, 0.1), |track| {
+                track.spawn((
+                    Node {
+                        width: Val::Percent(0.0),
+                        height: Val::Percent(100.0),
+                        ..Default::default()
+                    },
+                    BackgroundColor(Color::srgb(1.0, 0.4, 0.05)),
+                    FireballChargeFill,
+                ));
+            });
+        });
+}
+
+/// Spawns one weapon card row: label + a 140×12 track whose children are
+/// filled by the provided closure.
+fn weapon_card(
+    parent: &mut ChildBuilder,
+    label: &str,
+    border_color: Color,
+    fill_fn: impl FnOnce(&mut ChildBuilder),
+) {
+    parent
+        .spawn(Node {
+            flex_direction: FlexDirection::Row,
+            align_items: AlignItems::Center,
+            column_gap: Val::Px(8.0),
+            ..Default::default()
+        })
+        .with_children(|row| {
+            row.spawn((
+                Text::new(label),
+                TextFont {
+                    font_size: 13.0,
+                    ..Default::default()
+                },
+                TextColor(Color::WHITE),
+            ));
+            // Track
+            row.spawn((
+                Node {
+                    width: Val::Px(140.0),
+                    height: Val::Px(12.0),
+                    border: UiRect::all(Val::Px(2.0)),
+                    overflow: Overflow::clip(),
+                    ..Default::default()
+                },
+                BorderColor(border_color),
+                BackgroundColor(Color::srgba(0.05, 0.05, 0.05, 0.8)),
+            ))
+            .with_children(fill_fn);
+        });
+}
+
+#[allow(clippy::type_complexity)]
+pub fn update_weapon_hud(
+    player_query: Query<&Player>,
+    mut orb_query: Query<
+        (&mut Node, &mut BackgroundColor),
+        (With<OrbCooldownFill>, Without<FireballChargeFill>),
+    >,
+    mut fb_query: Query<
+        (&mut Node, &mut BackgroundColor),
+        (With<FireballChargeFill>, Without<OrbCooldownFill>),
+    >,
+) {
+    let Ok(player) = player_query.get_single() else {
+        return;
+    };
+
+    // Orb bar: shows how full the cooldown timer is (full = ready to fire)
+    let orb_elapsed = player.orb_timer.elapsed_secs();
+    let orb_duration = player.orb_timer.duration().as_secs_f32();
+    let orb_pct = (orb_elapsed / orb_duration * 100.0).clamp(0.0, 100.0);
+
+    if let Ok((mut node, _)) = orb_query.get_single_mut() {
+        node.width = Val::Percent(orb_pct);
+    }
+
+    // Fireball charge bar: charges / 5, turns bright orange when ready
+    let charges = player.orb_charges;
+    let charge_pct = f32::from(charges.min(5)) / 5.0 * 100.0;
+    if let Ok((mut node, mut bg)) = fb_query.get_single_mut() {
+        node.width = Val::Percent(charge_pct);
+        *bg = if charges >= 5 {
+            BackgroundColor(Color::srgb(1.0, 0.6, 0.0)) // bright gold = ready
+        } else {
+            BackgroundColor(Color::srgb(1.0, 0.4, 0.05)) // dim orange = charging
+        };
+    }
+}
+
+// ── Level-up ─────────────────────────────────────────────────────────────────
 
 pub fn transition_to_levelup(
     mut ev_level_up: EventReader<LevelUpEvent>,
@@ -343,6 +468,7 @@ pub fn handle_restart(
                     .orb_timer
                     .set_duration(std::time::Duration::from_secs_f32(1.5));
                 *stats = PlayerStats::default();
+                player.orb_charges = 0;
                 transform.translation = Vec3::ZERO;
             }
         }

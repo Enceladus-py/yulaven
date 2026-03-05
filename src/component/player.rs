@@ -11,6 +11,7 @@ pub struct Player {
     pub facing_direction: Vec2,
     pub fireball_timer: Timer,
     pub orb_timer: Timer,
+    pub orb_charges: u8,
 }
 
 impl Default for Player {
@@ -19,6 +20,7 @@ impl Default for Player {
             facing_direction: Vec2::X,
             fireball_timer: Timer::from_seconds(0.4, TimerMode::Repeating),
             orb_timer: Timer::from_seconds(1.5, TimerMode::Repeating),
+            orb_charges: 0,
         }
     }
 }

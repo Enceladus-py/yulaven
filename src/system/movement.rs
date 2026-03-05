@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use crate::{
     component::{
         camera::MainCamera,
+        enemy::Enemy,
         fireball::Fireball,
         orb::Orb,
         player::{Player, PlayerAnimation},
@@ -93,24 +94,40 @@ pub fn move_fireballs(
     }
 }
 
+#[allow(clippy::type_complexity)]
 pub fn move_orbs(
     mut commands: Commands,
-    mut orb_query: Query<(Entity, &mut Transform, &Sprite), With<Orb>>,
+    mut orb_query: Query<(Entity, &mut Transform, &mut Orb)>,
     pl_query: Query<&Transform, (With<Player>, Without<Orb>)>,
+    enemy_query: Query<&Transform, (With<Enemy>, Without<Orb>, Without<Player>)>,
     time: Res<Time>,
 ) {
-    if let Ok(pl_transform) = pl_query.get_single() {
-        for (orb_entity, mut orb_transform, sprite) in &mut orb_query {
-            orb_transform.translation.x = if sprite.flip_x {
-                orb_transform.translation.x - ORB_SPEED * time.delta_secs()
-            } else {
-                orb_transform.translation.x + ORB_SPEED * time.delta_secs()
-            };
-            if orb_transform.translation.x > pl_transform.translation.x + 1000.0
-                || orb_transform.translation.x < pl_transform.translation.x - 1000.0
-            {
-                commands.entity(orb_entity).despawn();
-            }
+    let Ok(pl_transform) = pl_query.get_single() else {
+        return;
+    };
+    for (orb_entity, mut orb_transform, mut orb) in &mut orb_query {
+        // Steer toward nearest enemy; fall back to stored initial direction
+        let steer_dir = enemy_query
+            .iter()
+            .min_by(|a, b| {
+                let da = a.translation.distance_squared(orb_transform.translation);
+                let db = b.translation.distance_squared(orb_transform.translation);
+                da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
+            })
+            .map_or(orb.direction, |et| {
+                (et.translation - orb_transform.translation)
+                    .truncate()
+                    .normalize_or_zero()
+            });
+
+        // Smoothly blend current direction toward target (simple lerp)
+        orb.direction = orb.direction.lerp(steer_dir, 0.12).normalize_or_zero();
+
+        orb_transform.translation += orb.direction.extend(0.0) * ORB_SPEED * time.delta_secs();
+
+        // Despawn if orb drifts too far from player
+        if orb_transform.translation.distance(pl_transform.translation) > 1000.0 {
+            commands.entity(orb_entity).despawn();
         }
     }
 }

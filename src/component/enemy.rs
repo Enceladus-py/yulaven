@@ -5,4 +5,6 @@ use bevy::{
 
 #[derive(Component, Default)]
 #[require(Sprite, Transform)]
-pub struct Enemy;
+pub struct Enemy {
+    pub active: bool,
+}

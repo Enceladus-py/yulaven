@@ -58,6 +58,6 @@ pub fn setup(
             translation: Vec3::new(0.0, -50.0, 0.0),
             ..Default::default()
         },
-        Enemy,
+        Enemy { active: false },
     ));
 }
