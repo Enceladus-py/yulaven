@@ -1,10 +1,11 @@
 [package]
-name = "my-first-game"
+name = "arcane-survivors"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 bevy = { version = "0.15.1", features = ["dynamic_linking"] }
+rand = "0.8"
 
 # Enable a small amount of optimization in the dev profile.
 [profile.dev]

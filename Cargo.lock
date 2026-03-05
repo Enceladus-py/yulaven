@@ -170,6 +170,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "arcane-survivors"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "rand",
+]
+
+[[package]]
 name = "arrayref"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2612,13 +2620,6 @@ checksum = "b8402cab7aefae129c6977bb0ff1b8fd9a04eb5b51efc50a70bea51cda0c7924"
 dependencies = [
  "adler2",
  "simd-adler32",
-]
-
-[[package]]
-name = "my-first-game"
-version = "0.1.0"
-dependencies = [
- "bevy",
 ]
 
 [[package]]
