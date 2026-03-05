@@ -10,6 +10,7 @@ use system::{
     movement::{move_fireballs, move_orbs, move_player},
     spawn::{fire_fireballs, fire_orbs},
     startup::setup,
+    ui::{handle_skill_selection, spawn_levelup_menu, transition_to_levelup},
 };
 
 mod component;
@@ -20,6 +21,7 @@ mod system;
 pub enum GameState {
     #[default]
     Playing,
+    LevelUp,
     Paused,
     GameOver,
 }
@@ -49,6 +51,15 @@ fn main() {
                 collect_gems,
             )
                 .run_if(in_state(GameState::Playing)),
+        )
+        .add_systems(
+            Update,
+            transition_to_levelup.run_if(in_state(GameState::Playing)),
+        )
+        .add_systems(OnEnter(GameState::LevelUp), spawn_levelup_menu)
+        .add_systems(
+            Update,
+            handle_skill_selection.run_if(in_state(GameState::LevelUp)),
         )
         .run();
 }
