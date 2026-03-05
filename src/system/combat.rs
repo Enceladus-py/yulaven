@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 
-use crate::component::{enemy::Enemy, health::Health, player::Player, spell::Spell};
+use crate::component::{
+    enemy::Enemy, experience::ExperienceGem, health::Health, player::Player, spell::Spell,
+};
 
 pub fn handle_spell_collisions(
     mut commands: Commands,
@@ -38,10 +40,27 @@ pub fn handle_enemy_player_collisions(
     }
 }
 
-pub fn handle_death(mut commands: Commands, query: Query<(Entity, &Health)>) {
-    for (entity, health) in &query {
+pub fn handle_death(
+    mut commands: Commands,
+    query: Query<(Entity, &Health, Option<&Transform>, Option<&Enemy>)>,
+) {
+    for (entity, health, opt_transform, opt_enemy) in &query {
         if health.0 <= 0.0 {
             commands.entity(entity).despawn();
+
+            if opt_enemy.is_some() {
+                if let Some(transform) = opt_transform {
+                    commands.spawn((
+                        Sprite {
+                            color: Color::srgb(0.2, 0.8, 0.2), // Green
+                            custom_size: Some(Vec2::new(15.0, 15.0)),
+                            ..Default::default()
+                        },
+                        Transform::from_translation(transform.translation),
+                        ExperienceGem { amount: 10.0 },
+                    ));
+                }
+            }
         }
     }
 }

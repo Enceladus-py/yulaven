@@ -3,6 +3,7 @@ use bevy::prelude::*;
 use crate::component::{
     camera::MainCamera,
     enemy::Enemy,
+    experience::PlayerStats,
     health::Health,
     player::{Player, PlayerAnimation, PlayerAttackMode},
 };
@@ -39,6 +40,7 @@ pub fn setup(
             ..Default::default()
         },
         Health(100.0),
+        PlayerStats::default(),
         PlayerAnimation {
             timer: Timer::from_seconds(0.1, TimerMode::Repeating),
             first_frame: 0,
