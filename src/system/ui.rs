@@ -1,6 +1,14 @@
 use bevy::prelude::*;
 
-use crate::{GameState, component::player::Player, system::experience::LevelUpEvent};
+use crate::{
+    GameState,
+    component::{experience::PlayerStats, health::Health, player::Player},
+    system::experience::LevelUpEvent,
+};
+
+const PLAYER_MAX_HEALTH: f32 = 100.0;
+
+// ── Marker components ───────────────────────────────────────────────────────
 
 #[derive(Component)]
 pub struct LevelUpMenu;
@@ -15,6 +23,132 @@ pub struct GameOverMenu;
 
 #[derive(Component)]
 pub struct RestartButton;
+
+#[derive(Component)]
+pub struct HealthBarFill;
+
+#[derive(Component)]
+pub struct XpBarFill;
+
+// ── HUD ─────────────────────────────────────────────────────────────────────
+
+pub fn spawn_hud(mut commands: Commands) {
+    // Root: pinned to bottom-left
+    commands
+        .spawn(Node {
+            position_type: PositionType::Absolute,
+            left: Val::Px(16.0),
+            bottom: Val::Px(16.0),
+            flex_direction: FlexDirection::Column,
+            row_gap: Val::Px(8.0),
+            ..Default::default()
+        })
+        .with_children(|root| {
+            // ── Health bar ──────────────────────────────────────────────────
+            root.spawn(Node {
+                flex_direction: FlexDirection::Row,
+                align_items: AlignItems::Center,
+                column_gap: Val::Px(8.0),
+                ..Default::default()
+            })
+            .with_children(|row| {
+                row.spawn((
+                    Text::new("HP"),
+                    TextFont {
+                        font_size: 14.0,
+                        ..Default::default()
+                    },
+                    TextColor(Color::srgb(1.0, 0.4, 0.4)),
+                ));
+                // Background track
+                row.spawn((
+                    Node {
+                        width: Val::Px(160.0),
+                        height: Val::Px(14.0),
+                        border: UiRect::all(Val::Px(2.0)),
+                        overflow: Overflow::clip(),
+                        ..Default::default()
+                    },
+                    BorderColor(Color::srgb(0.5, 0.15, 0.15)),
+                    BackgroundColor(Color::srgba(0.1, 0.0, 0.0, 0.8)),
+                ))
+                .with_children(|track| {
+                    track.spawn((
+                        Node {
+                            width: Val::Percent(100.0),
+                            height: Val::Percent(100.0),
+                            ..Default::default()
+                        },
+                        BackgroundColor(Color::srgb(0.2, 0.85, 0.3)),
+                        HealthBarFill,
+                    ));
+                });
+            });
+
+            // ── XP bar ─────────────────────────────────────────────────────
+            root.spawn(Node {
+                flex_direction: FlexDirection::Row,
+                align_items: AlignItems::Center,
+                column_gap: Val::Px(8.0),
+                ..Default::default()
+            })
+            .with_children(|row| {
+                row.spawn((
+                    Text::new("XP"),
+                    TextFont {
+                        font_size: 14.0,
+                        ..Default::default()
+                    },
+                    TextColor(Color::srgb(0.6, 0.4, 1.0)),
+                ));
+                // Background track
+                row.spawn((
+                    Node {
+                        width: Val::Px(160.0),
+                        height: Val::Px(14.0),
+                        border: UiRect::all(Val::Px(2.0)),
+                        overflow: Overflow::clip(),
+                        ..Default::default()
+                    },
+                    BorderColor(Color::srgb(0.2, 0.1, 0.4)),
+                    BackgroundColor(Color::srgba(0.05, 0.0, 0.1, 0.8)),
+                ))
+                .with_children(|track| {
+                    track.spawn((
+                        Node {
+                            width: Val::Percent(0.0),
+                            height: Val::Percent(100.0),
+                            ..Default::default()
+                        },
+                        BackgroundColor(Color::srgb(0.55, 0.25, 1.0)),
+                        XpBarFill,
+                    ));
+                });
+            });
+        });
+}
+
+pub fn update_hud(
+    player_query: Query<(&Health, &PlayerStats), With<Player>>,
+    mut hp_query: Query<&mut Node, (With<HealthBarFill>, Without<XpBarFill>)>,
+    mut xp_query: Query<&mut Node, (With<XpBarFill>, Without<HealthBarFill>)>,
+) {
+    let Ok((health, stats)) = player_query.get_single() else {
+        return;
+    };
+
+    let hp_pct = (health.0 / PLAYER_MAX_HEALTH * 100.0).clamp(0.0, 100.0);
+    let xp_pct = (stats.current_xp / stats.required_xp * 100.0).clamp(0.0, 100.0);
+
+    if let Ok(mut node) = hp_query.get_single_mut() {
+        node.width = Val::Percent(hp_pct);
+    }
+    if let Ok(mut node) = xp_query.get_single_mut() {
+        node.width = Val::Percent(xp_pct);
+    }
+}
+
+// ── Level-up ────────────────────────────────────────────────────────────────
 
 pub fn transition_to_levelup(
     mut ev_level_up: EventReader<LevelUpEvent>,
@@ -89,7 +223,7 @@ pub fn handle_skill_selection(
     mut next_state: ResMut<NextState<GameState>>,
     menu_query: Query<Entity, With<LevelUpMenu>>,
     mut commands: Commands,
-    mut player_query: Query<(&mut Player, &mut crate::component::health::Health)>,
+    mut player_query: Query<(&mut Player, &mut Health)>,
 ) {
     for (interaction, button) in &interaction_query {
         if *interaction == Interaction::Pressed {
@@ -117,6 +251,8 @@ pub fn handle_skill_selection(
         }
     }
 }
+
+// ── Game over ────────────────────────────────────────────────────────────────
 
 pub fn spawn_gameover_menu(mut commands: Commands) {
     commands
@@ -176,12 +312,7 @@ pub fn handle_restart(
     enemy_query: Query<Entity, With<crate::component::enemy::Enemy>>,
     gem_query: Query<Entity, With<crate::component::experience::ExperienceGem>>,
     spell_query: Query<Entity, With<crate::component::spell::Spell>>,
-    mut player_query: Query<(
-        &mut Player,
-        &mut crate::component::health::Health,
-        &mut crate::component::experience::PlayerStats,
-        &mut Transform,
-    )>,
+    mut player_query: Query<(&mut Player, &mut Health, &mut PlayerStats, &mut Transform)>,
 ) {
     for interaction in &interaction_query {
         if *interaction == Interaction::Pressed {
@@ -207,11 +338,11 @@ pub fn handle_restart(
                 health.0 = 100.0;
                 player
                     .fireball_timer
-                    .set_duration(std::time::Duration::from_secs_f32(1.0));
+                    .set_duration(std::time::Duration::from_secs_f32(0.4));
                 player
                     .orb_timer
-                    .set_duration(std::time::Duration::from_secs_f32(2.5));
-                *stats = crate::component::experience::PlayerStats::default();
+                    .set_duration(std::time::Duration::from_secs_f32(1.5));
+                *stats = PlayerStats::default();
                 transform.translation = Vec3::ZERO;
             }
         }

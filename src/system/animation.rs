@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::component::{
     fireball::FireballAnimation,
-    player::{Player, PlayerAnimation, PlayerAttackMode},
+    player::{Player, PlayerAnimation},
 };
 
 // System to animate sprite
@@ -21,15 +21,6 @@ pub fn animate_sprite(
                     } else {
                         atlas.index + 1
                     };
-
-                if matches!(
-                    animation.attack_mode,
-                    PlayerAttackMode::Orb | PlayerAttackMode::Fireball
-                ) && atlas.index >= animation.last_frame
-                {
-                    animation.attack_mode = PlayerAttackMode::None;
-                }
-                println!("{}", atlas.index);
             }
 
             sprite.flip_x = if player.facing_direction == (Vec2 { x: -1.0, y: 0.0 }) {

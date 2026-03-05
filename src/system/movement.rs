@@ -5,7 +5,7 @@ use crate::{
         camera::MainCamera,
         fireball::Fireball,
         orb::Orb,
-        player::{Player, PlayerAnimation, PlayerAttackMode},
+        player::{Player, PlayerAnimation},
     },
     constant::{FIREBALL_SPEED_FACTOR, FIREBALL_START_SPEED, ORB_SPEED, PLAYER_SPEED},
 };
@@ -46,22 +46,20 @@ pub fn move_player(
             player_transform.scale.y = 4.0; // Reset when idle
         }
 
-        if matches!(animation.attack_mode, PlayerAttackMode::None) {
-            if direction.length_squared() > 0.0 {
-                // Normalize direction and move the player
-                player_transform.translation +=
-                    direction.normalize() * PLAYER_SPEED * time.delta_secs();
+        if direction.length_squared() > 0.0 {
+            // Normalize direction and move the player
+            player_transform.translation +=
+                direction.normalize() * PLAYER_SPEED * time.delta_secs();
 
-                player.facing_direction = facing_direction;
+            player.facing_direction = facing_direction;
 
-                // Change to running animation
-                animation.first_frame = 12;
-                animation.last_frame = 17;
-            } else {
-                // Change to idle animation
-                animation.first_frame = 0;
-                animation.last_frame = 3;
-            }
+            // Change to running animation
+            animation.first_frame = 12;
+            animation.last_frame = 17;
+        } else {
+            // Change to idle animation
+            animation.first_frame = 0;
+            animation.last_frame = 3;
         }
 
         // Update the camera's position to follow the player

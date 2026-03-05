@@ -5,7 +5,7 @@ use crate::component::{
     enemy::Enemy,
     experience::PlayerStats,
     health::Health,
-    player::{Player, PlayerAnimation, PlayerAttackMode},
+    player::{Player, PlayerAnimation},
 };
 
 // Setup the game: spawn the camera and player entity
@@ -45,7 +45,6 @@ pub fn setup(
             timer: Timer::from_seconds(0.1, TimerMode::Repeating),
             first_frame: 0,
             last_frame: 3,
-            attack_mode: PlayerAttackMode::None,
         },
     ));
 
