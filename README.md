@@ -1,7 +1,7 @@
 # YULAVEN
 
 <p align="center">
-  <img src="yulaven_pixel_logo.png" width="200" alt="Yulaven Pixel Logo">
+  <img src="docs/images/yulaven_pixel_logo.png" width="200" alt="Yulaven Pixel Logo">
 </p>
 
 > **"Where the soul-light flickers, the void hungers."**
@@ -13,6 +13,10 @@
 In the era of the *Yulaven* (the soul-haven), the boundaries between the physical realm and the primordial void have thinned. Legions of the *Harrowed*—creatures born from the static between stars—have begun their final harvest. As a Weaver of the Soul-Fire, you are the last light in a world going dark.
 
 ## ✨ Core Features
+
+<p align="center">
+  <img src="docs/images/image.png" width="600" alt="Yulaven Gameplay Screenshot">
+</p>
 
 *   **Dynamic Arcane Combat**: Master the *Arcane Orbs*, which intelligently seek out the nearest threats, and unleash the devastating *Nova Fireball*—a high-impact spell charged by the very energy of your fallen foes.
 *   **Intelligent AI Ecology**: Experience the *Aggro-Field* system, where enemies react based on proximity and threat level, creating tactical "pockets" of combat rather than an overwhelming, mindless swarm.
