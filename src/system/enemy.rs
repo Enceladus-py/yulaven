@@ -40,27 +40,29 @@ pub fn spawn_enemies(
     }
 
     spawn_timer.0.tick(time.delta());
-    if spawn_timer.0.just_finished()
-        && let Ok(player_transform) = player_query.get_single()
-    {
-        let mut rng = rand::thread_rng();
-        let angle: f32 = rng.gen_range(0.0..std::f32::consts::TAU);
-        let distance: f32 = 800.0; // Spawn outside view
-
-        let spawn_pos = player_transform.translation
-            + Vec3::new(angle.cos() * distance, angle.sin() * distance, 0.0);
-
-        commands.spawn((
-            Sprite {
-                color: Color::srgb(0.6, 0.2, 0.2),
-                custom_size: Some(Vec2::new(50.0, 50.0)),
-                ..Default::default()
-            },
-            Transform::from_translation(spawn_pos),
-            Enemy,
-            Health(30.0),
-        ));
+    if !spawn_timer.0.just_finished() {
+        return;
     }
+    let Ok(player_transform) = player_query.get_single() else {
+        return;
+    };
+    let mut rng = rand::thread_rng();
+    let angle: f32 = rng.gen_range(0.0..std::f32::consts::TAU);
+    let distance: f32 = 800.0; // Spawn outside view
+
+    let spawn_pos = player_transform.translation
+        + Vec3::new(angle.cos() * distance, angle.sin() * distance, 0.0);
+
+    commands.spawn((
+        Sprite {
+            color: Color::srgb(0.6, 0.2, 0.2),
+            custom_size: Some(Vec2::new(50.0, 50.0)),
+            ..Default::default()
+        },
+        Transform::from_translation(spawn_pos),
+        Enemy,
+        Health(30.0),
+    ));
 }
 
 pub fn move_enemies(
