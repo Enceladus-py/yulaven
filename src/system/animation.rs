@@ -44,15 +44,15 @@ pub fn animate_sprite(
 
     for (mut sprite, mut animation) in &mut fb_query {
         animation.timer.tick(time.delta());
-        if animation.timer.just_finished() {
-            if let Some(ref mut atlas) = sprite.texture_atlas {
-                atlas.index =
-                    if atlas.index >= animation.last_frame || atlas.index < animation.first_frame {
-                        animation.first_frame
-                    } else {
-                        atlas.index + 1
-                    };
-            }
+        if animation.timer.just_finished()
+            && let Some(ref mut atlas) = sprite.texture_atlas
+        {
+            atlas.index =
+                if atlas.index >= animation.last_frame || atlas.index < animation.first_frame {
+                    animation.first_frame
+                } else {
+                    atlas.index + 1
+                };
         }
     }
 }

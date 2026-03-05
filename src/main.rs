@@ -5,8 +5,8 @@ use bevy::prelude::*;
 use system::{
     animation::animate_sprite,
     combat::{handle_death, handle_enemy_player_collisions, handle_spell_collisions},
-    enemy::{move_enemies, spawn_enemies, EnemySpawnTimer},
-    experience::{collect_gems, LevelUpEvent},
+    enemy::{EnemySpawnTimer, move_enemies, spawn_enemies},
+    experience::{LevelUpEvent, collect_gems},
     movement::{move_fireballs, move_orbs, move_player},
     spawn::{fire_fireballs, fire_orbs},
     startup::setup,

@@ -86,10 +86,10 @@ pub fn move_fireballs(
         fb_transform.translation += Vec3::from((fb.direction * speed * time.delta_secs(), 0.0));
 
         // Despawn if fireball moves too far from the player
-        if let Ok(pl_transform) = pl_query.get_single() {
-            if fb_transform.translation.distance(pl_transform.translation) > 1000.0 {
-                commands.entity(fireball_entity).despawn();
-            }
+        if let Ok(pl_transform) = pl_query.get_single()
+            && fb_transform.translation.distance(pl_transform.translation) > 1000.0
+        {
+            commands.entity(fireball_entity).despawn();
         }
     }
 }

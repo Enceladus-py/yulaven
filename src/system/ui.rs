@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{component::player::Player, system::experience::LevelUpEvent, GameState};
+use crate::{GameState, component::player::Player, system::experience::LevelUpEvent};
 
 #[derive(Component)]
 pub struct LevelUpMenu;

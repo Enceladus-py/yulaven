@@ -1,10 +1,10 @@
 use bevy::prelude::*;
 
 use crate::{
+    GameState,
     component::{
         enemy::Enemy, experience::ExperienceGem, health::Health, player::Player, spell::Spell,
     },
-    GameState,
 };
 
 #[allow(clippy::type_complexity)]
@@ -66,18 +66,18 @@ pub fn handle_death(
 
             commands.entity(entity).despawn();
 
-            if opt_enemy.is_some() {
-                if let Some(transform) = opt_transform {
-                    commands.spawn((
-                        Sprite {
-                            color: Color::srgb(0.2, 0.8, 0.2), // Green
-                            custom_size: Some(Vec2::new(15.0, 15.0)),
-                            ..Default::default()
-                        },
-                        Transform::from_translation(transform.translation),
-                        ExperienceGem { amount: 10.0 },
-                    ));
-                }
+            if opt_enemy.is_some()
+                && let Some(transform) = opt_transform
+            {
+                commands.spawn((
+                    Sprite {
+                        color: Color::srgb(0.2, 0.8, 0.2), // Green
+                        custom_size: Some(Vec2::new(15.0, 15.0)),
+                        ..Default::default()
+                    },
+                    Transform::from_translation(transform.translation),
+                    ExperienceGem { amount: 10.0 },
+                ));
             }
         }
     }
