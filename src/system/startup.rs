@@ -109,6 +109,7 @@ pub fn setup(
             commands
                 .spawn((
                     Sprite {
+                        color: Color::srgb(0.4, 0.4, 0.4),
                         image: terrain_handle.clone(),
                         custom_size: Some(Vec2::new(4096.0, 4096.0)),
                         image_mode: SpriteImageMode::Tiled {
@@ -129,6 +130,7 @@ pub fn setup(
                     for i in 0..20 {
                         parent.spawn((
                             Sprite {
+                                color: Color::srgb(0.4, 0.4, 0.4),
                                 image: pine_tree.clone(), // Default image, will be overwritten by map system
                                 ..Default::default()
                             },
