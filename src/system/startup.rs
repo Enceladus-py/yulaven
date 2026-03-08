@@ -9,6 +9,7 @@ use crate::component::{
 };
 
 // Setup the game: spawn the camera and player entity
+#[allow(clippy::cast_precision_loss, clippy::too_many_lines)]
 pub fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -16,6 +17,61 @@ pub fn setup(
 ) {
     // Camera
     commands.spawn((Camera2d, MainCamera));
+
+    // Terrain Structure Assets
+    let pine_tree: Handle<Image> = asset_server.load("structures/pine_tree.png");
+
+    let mut stone_rocks = Vec::new();
+    for i in 0..16 {
+        stone_rocks.push(asset_server.load(format!("structures/stone_rock_{i}.png")));
+    }
+
+    let mut ruined_pillars = Vec::new();
+    for i in 0..4 {
+        ruined_pillars.push(asset_server.load(format!("structures/ruined_pillar_{i}.png")));
+    }
+
+    commands.insert_resource(crate::component::map::StructureAssets {
+        pine_tree: pine_tree.clone(),
+        stone_rocks,
+        ruined_pillars,
+    });
+    // Just putting them in a vec or similar wouldn't work easily with commands without cloning handles,
+    // so we pass them to the map system when needed or just create dummy sprites.
+    // We will build the dummy sprites here.
+
+    // Terrain
+    let terrain_handle = asset_server.load("textures/grass_terrain.png");
+    for x in -1..=1 {
+        for y in -1..=1 {
+            commands
+                .spawn((
+                    Sprite {
+                        image: terrain_handle.clone(),
+                        custom_size: Some(Vec2::new(4096.0, 4096.0)),
+                        ..Default::default()
+                    },
+                    Transform::from_xyz(x as f32 * 4096.0, y as f32 * 4096.0, -10.0),
+                    crate::component::map::TerrainTile {
+                        offset: IVec2::new(x, y),
+                        logical_coord: IVec2::new(-999, -999), // Force initial map system refresh
+                    },
+                ))
+                .with_children(|parent| {
+                    // Spawn 20 pooled structures per tile
+                    for i in 0..20 {
+                        parent.spawn((
+                            Sprite {
+                                image: pine_tree.clone(), // Default image, will be overwritten by map system
+                                ..Default::default()
+                            },
+                            Transform::from_xyz(0.0, 0.0, 1.0), // Z = 1.0 to render above terrain
+                            crate::component::map::Structure { local_index: i },
+                        ));
+                    }
+                });
+        }
+    }
 
     let texture_handle = asset_server.load("outline/MiniMage.png");
     let texture_atlas = TextureAtlasLayout::from_grid(UVec2::splat(32), 12, 12, None, None);

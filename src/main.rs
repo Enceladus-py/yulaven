@@ -7,12 +7,14 @@ use system::{
     combat::{handle_death, handle_enemy_player_collisions, handle_spell_collisions},
     enemy::{EnemySpawnTimer, GameTimer, move_enemies, spawn_enemies},
     experience::{LevelUpEvent, collect_gems},
+    map::update_terrain,
     movement::{apply_knockback, move_fireballs, move_orbs, move_player},
     spawn::{fire_fireballs, fire_orbs},
     startup::setup,
     ui::{
-        handle_restart, handle_skill_selection, spawn_gameover_menu, spawn_hud, spawn_levelup_menu,
-        spawn_weapon_hud, transition_to_levelup, update_hud, update_weapon_hud,
+        handle_restart, handle_skill_selection, spawn_gameover_menu, spawn_hud, spawn_large_map,
+        spawn_levelup_menu, spawn_minimap_hud, spawn_weapon_hud, toggle_map, transition_to_levelup,
+        update_hud, update_map_blips, update_weapon_hud,
     },
 };
 
@@ -37,7 +39,16 @@ fn main() {
         .init_resource::<EnemySpawnTimer>()
         .init_resource::<GameTimer>()
         .init_state::<GameState>()
-        .add_systems(Startup, (setup, spawn_hud, spawn_weapon_hud))
+        .add_systems(
+            Startup,
+            (
+                setup,
+                spawn_hud,
+                spawn_weapon_hud,
+                spawn_minimap_hud,
+                spawn_large_map,
+            ),
+        )
         .add_systems(
             Update,
             (
@@ -58,6 +69,9 @@ fn main() {
                 collect_gems,
                 update_hud,
                 update_weapon_hud,
+                toggle_map,
+                update_map_blips,
+                update_terrain,
             )
                 .into_configs()
                 .run_if(in_state(GameState::Playing)),

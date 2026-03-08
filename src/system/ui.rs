@@ -38,6 +38,18 @@ pub struct OrbCooldownFill;
 #[derive(Component)]
 pub struct FireballChargeFill;
 
+#[derive(Component)]
+pub struct MinimapUi;
+
+#[derive(Component)]
+pub struct LargeMapUi;
+
+#[derive(Component)]
+pub struct MinimapPlayerBlip;
+
+#[derive(Component)]
+pub struct LargeMapPlayerBlip;
+
 // ── HUD ─────────────────────────────────────────────────────────────────────
 
 pub fn spawn_hud(mut commands: Commands) {
@@ -504,5 +516,138 @@ pub fn handle_restart(
                 transform.translation = Vec3::ZERO;
             }
         }
+    }
+}
+
+pub fn spawn_minimap_hud(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let terrain_handle = asset_server.load("textures/terrain.png");
+    commands
+        .spawn((
+            Node {
+                position_type: PositionType::Absolute,
+                right: Val::Px(16.0),
+                top: Val::Px(16.0),
+                ..Default::default()
+            },
+            MinimapUi,
+        ))
+        .with_children(|root| {
+            root.spawn((
+                ImageNode::new(terrain_handle.clone()),
+                Node {
+                    width: Val::Px(150.0),
+                    height: Val::Px(150.0),
+                    border: UiRect::all(Val::Px(4.0)),
+                    overflow: Overflow::clip(),
+                    ..Default::default()
+                },
+                BorderColor::all(Color::srgb(0.2, 0.2, 0.2)),
+            ))
+            .with_children(|map| {
+                map.spawn((
+                    Node {
+                        position_type: PositionType::Absolute,
+                        width: Val::Px(6.0),
+                        height: Val::Px(6.0),
+                        left: Val::Percent(50.0),
+                        top: Val::Percent(50.0),
+                        ..Default::default()
+                    },
+                    BackgroundColor(Color::srgb(1.0, 0.0, 0.0)),
+                    MinimapPlayerBlip,
+                ));
+            });
+        });
+}
+
+pub fn spawn_large_map(mut commands: Commands, asset_server: Res<AssetServer>) {
+    let terrain_handle = asset_server.load("textures/terrain.png");
+    commands
+        .spawn((
+            Node {
+                position_type: PositionType::Absolute,
+                left: Val::Percent(50.0),
+                top: Val::Percent(50.0),
+                margin: UiRect {
+                    left: Val::Px(-300.0),
+                    top: Val::Px(-300.0),
+                    ..Default::default()
+                },
+                width: Val::Px(600.0),
+                height: Val::Px(600.0),
+                border: UiRect::all(Val::Px(8.0)),
+                overflow: Overflow::clip(),
+                display: Display::None,
+                ..Default::default()
+            },
+            BorderColor::all(Color::srgb(0.5, 0.4, 0.2)),
+            LargeMapUi,
+        ))
+        .with_children(|map| {
+            map.spawn((
+                ImageNode::new(terrain_handle),
+                Node {
+                    width: Val::Percent(100.0),
+                    height: Val::Percent(100.0),
+                    ..Default::default()
+                },
+            ))
+            .with_children(|inner_map| {
+                inner_map.spawn((
+                    Node {
+                        position_type: PositionType::Absolute,
+                        width: Val::Px(12.0),
+                        height: Val::Px(12.0),
+                        left: Val::Percent(50.0),
+                        top: Val::Percent(50.0),
+                        ..Default::default()
+                    },
+                    BackgroundColor(Color::srgb(1.0, 0.0, 0.0)),
+                    LargeMapPlayerBlip,
+                ));
+            });
+        });
+}
+
+pub fn toggle_map(
+    keyboard_input: Res<ButtonInput<KeyCode>>,
+    mut query: Query<&mut Node, With<LargeMapUi>>,
+) {
+    if keyboard_input.just_pressed(KeyCode::KeyM)
+        && let Ok(mut node) = query.single_mut()
+    {
+        node.display = if node.display == Display::None {
+            Display::Flex
+        } else {
+            Display::None
+        };
+    }
+}
+
+pub fn update_map_blips(
+    player_query: Query<&Transform, With<Player>>,
+    mut minimap_query: Query<&mut Node, (With<MinimapPlayerBlip>, Without<LargeMapPlayerBlip>)>,
+    mut largemap_query: Query<&mut Node, (With<LargeMapPlayerBlip>, Without<MinimapPlayerBlip>)>,
+) {
+    let Ok(player_transform) = player_query.single() else {
+        return;
+    };
+
+    let px = player_transform.translation.x;
+    let py = player_transform.translation.y;
+
+    let x_mod = (px + 2048.0).rem_euclid(4096.0);
+    let y_mod = (-py + 2048.0).rem_euclid(4096.0);
+
+    let pct_x = (x_mod / 4096.0 * 100.0).clamp(0.0, 100.0);
+    let pct_y = (y_mod / 4096.0 * 100.0).clamp(0.0, 100.0);
+
+    for mut blip_node in &mut minimap_query {
+        blip_node.left = Val::Percent(pct_x);
+        blip_node.top = Val::Percent(pct_y);
+    }
+    for mut blip_node in &mut largemap_query {
+        blip_node.left = Val::Percent(pct_x);
+        blip_node.top = Val::Percent(pct_y);
     }
 }
