@@ -14,7 +14,7 @@ use system::{
     ui::{
         handle_restart, handle_skill_selection, spawn_gameover_menu, spawn_hud, spawn_large_map,
         spawn_levelup_menu, spawn_minimap_hud, spawn_weapon_hud, toggle_map, transition_to_levelup,
-        update_hud, update_map_blips, update_weapon_hud,
+        update_hud, update_map, update_weapon_hud,
     },
 };
 
@@ -70,7 +70,7 @@ fn main() {
                 update_hud,
                 update_weapon_hud,
                 toggle_map,
-                update_map_blips,
+                update_map,
                 update_terrain,
             )
                 .into_configs()

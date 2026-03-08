@@ -31,7 +31,69 @@ pub fn setup(
         ruined_pillars.push(asset_server.load(format!("structures/ruined_pillar_{i}.png")));
     }
 
+    let grass_terrain: Handle<Image> = asset_server.load_with_settings(
+        "textures/grass_terrain.png",
+        |settings: &mut bevy::image::ImageLoaderSettings| {
+            settings.sampler =
+                bevy::image::ImageSampler::Descriptor(bevy::image::ImageSamplerDescriptor {
+                    address_mode_u: bevy::image::ImageAddressMode::Repeat,
+                    address_mode_v: bevy::image::ImageAddressMode::Repeat,
+                    ..Default::default()
+                });
+        },
+    );
+    let dirt_terrain: Handle<Image> = asset_server.load_with_settings(
+        "textures/dirt_terrain.png",
+        |settings: &mut bevy::image::ImageLoaderSettings| {
+            settings.sampler =
+                bevy::image::ImageSampler::Descriptor(bevy::image::ImageSamplerDescriptor {
+                    address_mode_u: bevy::image::ImageAddressMode::Repeat,
+                    address_mode_v: bevy::image::ImageAddressMode::Repeat,
+                    ..Default::default()
+                });
+        },
+    );
+
+    let stone_terrain: Handle<Image> = asset_server.load_with_settings(
+        "textures/stone_terrain.png",
+        |settings: &mut bevy::image::ImageLoaderSettings| {
+            settings.sampler =
+                bevy::image::ImageSampler::Descriptor(bevy::image::ImageSamplerDescriptor {
+                    address_mode_u: bevy::image::ImageAddressMode::Repeat,
+                    address_mode_v: bevy::image::ImageAddressMode::Repeat,
+                    ..Default::default()
+                });
+        },
+    );
+    let sand_terrain: Handle<Image> = asset_server.load_with_settings(
+        "textures/sand_terrain.png",
+        |settings: &mut bevy::image::ImageLoaderSettings| {
+            settings.sampler =
+                bevy::image::ImageSampler::Descriptor(bevy::image::ImageSamplerDescriptor {
+                    address_mode_u: bevy::image::ImageAddressMode::Repeat,
+                    address_mode_v: bevy::image::ImageAddressMode::Repeat,
+                    ..Default::default()
+                });
+        },
+    );
+    let dark_grass_terrain: Handle<Image> = asset_server.load_with_settings(
+        "textures/dark_grass_terrain.png",
+        |settings: &mut bevy::image::ImageLoaderSettings| {
+            settings.sampler =
+                bevy::image::ImageSampler::Descriptor(bevy::image::ImageSamplerDescriptor {
+                    address_mode_u: bevy::image::ImageAddressMode::Repeat,
+                    address_mode_v: bevy::image::ImageAddressMode::Repeat,
+                    ..Default::default()
+                });
+        },
+    );
+
     commands.insert_resource(crate::component::map::StructureAssets {
+        grass_terrain: grass_terrain.clone(),
+        dirt_terrain,
+        stone_terrain,
+        sand_terrain,
+        dark_grass_terrain,
         pine_tree: pine_tree.clone(),
         stone_rocks,
         ruined_pillars,
@@ -41,7 +103,7 @@ pub fn setup(
     // We will build the dummy sprites here.
 
     // Terrain
-    let terrain_handle = asset_server.load("textures/grass_terrain.png");
+    let terrain_handle = grass_terrain;
     for x in -1..=1 {
         for y in -1..=1 {
             commands
@@ -49,6 +111,11 @@ pub fn setup(
                     Sprite {
                         image: terrain_handle.clone(),
                         custom_size: Some(Vec2::new(4096.0, 4096.0)),
+                        image_mode: SpriteImageMode::Tiled {
+                            tile_x: true,
+                            tile_y: true,
+                            stretch_value: 1.0,
+                        },
                         ..Default::default()
                     },
                     Transform::from_xyz(x as f32 * 4096.0, y as f32 * 4096.0, -10.0),
@@ -67,6 +134,7 @@ pub fn setup(
                             },
                             Transform::from_xyz(0.0, 0.0, 1.0), // Z = 1.0 to render above terrain
                             crate::component::map::Structure { local_index: i },
+                            crate::component::map::Collider { radius: 100.0 },
                         ));
                     }
                 });

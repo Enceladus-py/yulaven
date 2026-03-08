@@ -32,6 +32,10 @@ pub fn move_player(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     mut player_query: Query<(&mut Transform, &mut PlayerAnimation, &mut Player), With<Player>>,
     mut camera_query: Query<&mut Transform, (With<MainCamera>, Without<Player>)>,
+    structure_query: Query<
+        (&GlobalTransform, &crate::component::map::Collider),
+        With<crate::component::map::Structure>,
+    >,
     time: Res<Time>,
 ) {
     let mut direction = Vec3::ZERO;
@@ -65,8 +69,24 @@ pub fn move_player(
 
         if direction.length_squared() > 0.0 {
             // Normalize direction and move the player
-            player_transform.translation +=
-                direction.normalize() * PLAYER_SPEED * time.delta_secs();
+            let mut new_translation = player_transform.translation
+                + direction.normalize() * PLAYER_SPEED * time.delta_secs();
+
+            // Collision resolution
+            for (str_transform, collider) in &structure_query {
+                let diff = new_translation.truncate() - str_transform.translation().truncate();
+                let dist_sq = diff.length_squared();
+                let min_dist = 40.0 + collider.radius;
+
+                if dist_sq < min_dist * min_dist {
+                    let dist = dist_sq.sqrt();
+                    let push_dir = if dist > 0.001 { diff / dist } else { Vec2::X };
+                    let depth = min_dist - dist;
+                    new_translation += (push_dir * depth).extend(0.0);
+                }
+            }
+
+            player_transform.translation = new_translation;
 
             player.facing_direction = facing_direction;
 

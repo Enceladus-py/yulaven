@@ -34,14 +34,17 @@ pub fn update_terrain(
         (Without<Player>, Without<TerrainTile>),
     >,
     structure_assets: Res<crate::component::map::StructureAssets>,
-    asset_server: Res<AssetServer>,
+    _asset_server: Res<AssetServer>,
 ) {
     let Ok(player_transform) = player_query.single() else {
         return;
     };
 
-    let grass_terrain = asset_server.load("textures/grass_terrain.png");
-    let dirt_terrain = asset_server.load("textures/dirt_terrain.png");
+    let grass_terrain = structure_assets.grass_terrain.clone();
+    let dirt_terrain = structure_assets.dirt_terrain.clone();
+    let stone_terrain = structure_assets.stone_terrain.clone();
+    let sand_terrain = structure_assets.sand_terrain.clone();
+    let dark_grass_terrain = structure_assets.dark_grass_terrain.clone();
 
     let px = player_transform.translation.x;
     let py = player_transform.translation.y;
@@ -72,10 +75,16 @@ pub fn update_terrain(
 
             // Randomly pick terrain tile
             let rng_terrain = pcg_hash(base_seed as u32);
-            if rng_terrain < 0.6 {
+            if rng_terrain < 0.3 {
                 tile_sprite.image = grass_terrain.clone();
-            } else {
+            } else if rng_terrain < 0.5 {
+                tile_sprite.image = dark_grass_terrain.clone();
+            } else if rng_terrain < 0.7 {
                 tile_sprite.image = dirt_terrain.clone();
+            } else if rng_terrain < 0.85 {
+                tile_sprite.image = stone_terrain.clone();
+            } else {
+                tile_sprite.image = sand_terrain.clone();
             }
 
             for &child in children {

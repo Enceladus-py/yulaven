@@ -70,6 +70,10 @@ pub fn spawn_enemies(
 pub fn move_enemies(
     mut enemy_query: Query<(&mut Transform, &mut Enemy)>,
     player_query: Query<&Transform, (With<Player>, Without<Enemy>)>,
+    structure_query: Query<
+        (&GlobalTransform, &crate::component::map::Collider),
+        With<crate::component::map::Structure>,
+    >,
     time: Res<Time>,
 ) {
     let Ok(player_transform) = player_query.single() else {
@@ -91,7 +95,23 @@ pub fn move_enemies(
         if enemy.active && distance > 0.0 {
             let move_dir = direction.normalize();
             let speed = 50.0;
-            enemy_transform.translation += move_dir.extend(0.0) * speed * time.delta_secs();
+            let mut new_translation =
+                enemy_transform.translation + move_dir.extend(0.0) * speed * time.delta_secs();
+
+            // Collision resolution
+            for (str_transform, collider) in &structure_query {
+                let diff = new_translation.truncate() - str_transform.translation().truncate();
+                let dist_sq = diff.length_squared();
+                let min_dist = 25.0 + collider.radius;
+
+                if dist_sq < min_dist * min_dist {
+                    let dist = dist_sq.sqrt();
+                    let push_dir = if dist > 0.001 { diff / dist } else { Vec2::X };
+                    let depth = min_dist - dist;
+                    new_translation += (push_dir * depth).extend(0.0);
+                }
+            }
+            enemy_transform.translation = new_translation;
         }
     }
 }

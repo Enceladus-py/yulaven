@@ -50,6 +50,11 @@ pub struct MinimapPlayerBlip;
 #[derive(Component)]
 pub struct LargeMapPlayerBlip;
 
+#[derive(Component)]
+pub struct UiTerrainTile {
+    pub offset: IVec2,
+}
+
 // ── HUD ─────────────────────────────────────────────────────────────────────
 
 pub fn spawn_hud(mut commands: Commands) {
@@ -519,8 +524,8 @@ pub fn handle_restart(
     }
 }
 
-pub fn spawn_minimap_hud(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let terrain_handle = asset_server.load("textures/terrain.png");
+pub fn spawn_minimap_hud(mut commands: Commands) {
+    // The actual textures will be assigned by `update_map_textures`
     commands
         .spawn((
             Node {
@@ -533,7 +538,6 @@ pub fn spawn_minimap_hud(mut commands: Commands, asset_server: Res<AssetServer>)
         ))
         .with_children(|root| {
             root.spawn((
-                ImageNode::new(terrain_handle.clone()),
                 Node {
                     width: Val::Px(150.0),
                     height: Val::Px(150.0),
@@ -542,8 +546,27 @@ pub fn spawn_minimap_hud(mut commands: Commands, asset_server: Res<AssetServer>)
                     ..Default::default()
                 },
                 BorderColor::all(Color::srgb(0.2, 0.2, 0.2)),
+                BackgroundColor(Color::srgb(0.1, 0.1, 0.1)),
             ))
             .with_children(|map| {
+                // Spawn 4x4 grid of terrain colors, absolutely positioned
+                for y in -1..=2 {
+                    for x in -1..=2 {
+                        map.spawn((
+                            Node {
+                                position_type: PositionType::Absolute,
+                                width: Val::Percent(33.333),
+                                height: Val::Percent(33.333),
+                                ..Default::default()
+                            },
+                            BackgroundColor(Color::srgb(0.1, 0.1, 0.1)),
+                            UiTerrainTile {
+                                offset: IVec2::new(x, -y),
+                            },
+                        ));
+                    }
+                }
+
                 map.spawn((
                     Node {
                         position_type: PositionType::Absolute,
@@ -551,6 +574,11 @@ pub fn spawn_minimap_hud(mut commands: Commands, asset_server: Res<AssetServer>)
                         height: Val::Px(6.0),
                         left: Val::Percent(50.0),
                         top: Val::Percent(50.0),
+                        margin: UiRect {
+                            left: Val::Px(-3.0),
+                            top: Val::Px(-3.0),
+                            ..Default::default()
+                        },
                         ..Default::default()
                     },
                     BackgroundColor(Color::srgb(1.0, 0.0, 0.0)),
@@ -560,8 +588,7 @@ pub fn spawn_minimap_hud(mut commands: Commands, asset_server: Res<AssetServer>)
         });
 }
 
-pub fn spawn_large_map(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let terrain_handle = asset_server.load("textures/terrain.png");
+pub fn spawn_large_map(mut commands: Commands) {
     commands
         .spawn((
             Node {
@@ -581,18 +608,34 @@ pub fn spawn_large_map(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ..Default::default()
             },
             BorderColor::all(Color::srgb(0.5, 0.4, 0.2)),
+            BackgroundColor(Color::srgb(0.1, 0.1, 0.1)),
             LargeMapUi,
         ))
         .with_children(|map| {
-            map.spawn((
-                ImageNode::new(terrain_handle),
-                Node {
-                    width: Val::Percent(100.0),
-                    height: Val::Percent(100.0),
-                    ..Default::default()
-                },
-            ))
+            map.spawn(Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                ..Default::default()
+            })
             .with_children(|inner_map| {
+                // Spawn 4x4 grid of terrain colors, absolutely positioned
+                for y in -1..=2 {
+                    for x in -1..=2 {
+                        inner_map.spawn((
+                            Node {
+                                position_type: PositionType::Absolute,
+                                width: Val::Percent(33.333),
+                                height: Val::Percent(33.333),
+                                ..Default::default()
+                            },
+                            BackgroundColor(Color::srgb(0.1, 0.1, 0.1)),
+                            UiTerrainTile {
+                                offset: IVec2::new(x, -y),
+                            },
+                        ));
+                    }
+                }
+
                 inner_map.spawn((
                     Node {
                         position_type: PositionType::Absolute,
@@ -600,6 +643,11 @@ pub fn spawn_large_map(mut commands: Commands, asset_server: Res<AssetServer>) {
                         height: Val::Px(12.0),
                         left: Val::Percent(50.0),
                         top: Val::Percent(50.0),
+                        margin: UiRect {
+                            left: Val::Px(-6.0),
+                            top: Val::Px(-6.0),
+                            ..Default::default()
+                        },
                         ..Default::default()
                     },
                     BackgroundColor(Color::srgb(1.0, 0.0, 0.0)),
@@ -624,10 +672,15 @@ pub fn toggle_map(
     }
 }
 
-pub fn update_map_blips(
+#[allow(
+    clippy::type_complexity,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_precision_loss
+)]
+pub fn update_map(
     player_query: Query<&Transform, With<Player>>,
-    mut minimap_query: Query<&mut Node, (With<MinimapPlayerBlip>, Without<LargeMapPlayerBlip>)>,
-    mut largemap_query: Query<&mut Node, (With<LargeMapPlayerBlip>, Without<MinimapPlayerBlip>)>,
+    mut tile_query: Query<(&UiTerrainTile, &mut Node, &mut BackgroundColor)>,
 ) {
     let Ok(player_transform) = player_query.single() else {
         return;
@@ -636,18 +689,50 @@ pub fn update_map_blips(
     let px = player_transform.translation.x;
     let py = player_transform.translation.y;
 
-    let x_mod = (px + 2048.0).rem_euclid(4096.0);
-    let y_mod = (-py + 2048.0).rem_euclid(4096.0);
+    let tile_size = 4096.0;
 
-    let pct_x = (x_mod / 4096.0 * 100.0).clamp(0.0, 100.0);
-    let pct_y = (y_mod / 4096.0 * 100.0).clamp(0.0, 100.0);
+    // The player's logical chunk coordinate
+    let base_x = (px / tile_size).round();
+    let base_y = (py / tile_size).round();
 
-    for mut blip_node in &mut minimap_query {
-        blip_node.left = Val::Percent(pct_x);
-        blip_node.top = Val::Percent(pct_y);
-    }
-    for mut blip_node in &mut largemap_query {
-        blip_node.left = Val::Percent(pct_x);
-        blip_node.top = Val::Percent(pct_y);
+    // The sub-chunk offset of the player (-50% to +50%)
+    let pct_offset_x = (px - base_x * tile_size) / tile_size * 100.0;
+    // Map is Y-up, GUI is Y-down
+    let pct_offset_y = -(py - base_y * tile_size) / tile_size * 100.0;
+
+    // Update colors and scroll position
+    for (tile, mut node, mut bg) in &mut tile_query {
+        let logical_x = base_x as i32 + tile.offset.x;
+        let logical_y = base_y as i32 + tile.offset.y;
+
+        let base_seed =
+            (logical_x.wrapping_mul(73_856_093_i32)) ^ (logical_y.wrapping_mul(19_349_663_i32));
+
+        let rng_terrain = crate::system::map::pcg_hash(base_seed as u32);
+
+        if rng_terrain < 0.3 {
+            *bg = BackgroundColor(Color::srgb(0.2, 0.6, 0.2)); // Grass
+        } else if rng_terrain < 0.5 {
+            *bg = BackgroundColor(Color::srgb(0.1, 0.4, 0.1)); // Dark Grass
+        } else if rng_terrain < 0.7 {
+            *bg = BackgroundColor(Color::srgb(0.6, 0.4, 0.2)); // Dirt
+        } else if rng_terrain < 0.85 {
+            *bg = BackgroundColor(Color::srgb(0.5, 0.5, 0.5)); // Stone
+        } else {
+            *bg = BackgroundColor(Color::srgb(0.8, 0.7, 0.3)); // Sand
+        }
+
+        // 33.333% is the width/height of one tile piece relative to the 3x3 view
+        // The blip is at 50% left/top.
+        // If tile offset = (0, 0), it should be centered exactly around the blip, slightly shifted
+        // by the player's subchunk percentage offset.
+        let view_center = 50.0; // center of UI
+        let block_radius = 33.333 / 2.0;
+
+        let start_left = view_center - block_radius + (tile.offset.x as f32 * 33.333);
+        let start_top = view_center - block_radius + (-tile.offset.y as f32 * 33.333);
+
+        node.left = Val::Percent(start_left - (pct_offset_x * 0.33333));
+        node.top = Val::Percent(start_top - (pct_offset_y * 0.33333));
     }
 }
