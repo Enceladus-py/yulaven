@@ -1,9 +1,17 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, time::TimerMode};
 
 use crate::{
     GameState,
     component::{
-        enemy::Enemy, experience::ExperienceGem, health::Health, player::Player, spell::Spell,
+        enemy::{DamageFlash, Enemy},
+        experience::ExperienceGem,
+        health::Health,
+        player::{Invincible, Knockback, Player},
+        spell::Spell,
+    },
+    constant::{
+        DAMAGE_FLASH_DURATION, ENEMY_KNOCKBACK_DURATION, ENEMY_KNOCKBACK_SPEED,
+        INVINCIBILITY_DURATION, KNOCKBACK_DURATION, KNOCKBACK_SPEED,
     },
 };
 
@@ -14,7 +22,7 @@ pub fn handle_spell_collisions(
     mut enemy_query: Query<(Entity, &Transform, &mut Health), With<Enemy>>,
 ) {
     for (spell_entity, spell_transform, spell) in &spell_query {
-        for (_enemy_entity, enemy_transform, mut enemy_health) in &mut enemy_query {
+        for (enemy_entity, enemy_transform, mut enemy_health) in &mut enemy_query {
             let distance = spell_transform
                 .translation
                 .distance(enemy_transform.translation);
@@ -22,6 +30,19 @@ pub fn handle_spell_collisions(
             if distance < 30.0 {
                 enemy_health.0 -= spell.damage;
                 commands.entity(spell_entity).despawn();
+
+                let knockback_dir = (enemy_transform.translation - spell_transform.translation)
+                    .truncate()
+                    .normalize_or_zero();
+
+                commands.entity(enemy_entity).insert((
+                    DamageFlash(Timer::from_seconds(DAMAGE_FLASH_DURATION, TimerMode::Once)),
+                    Knockback {
+                        velocity: knockback_dir * ENEMY_KNOCKBACK_SPEED,
+                        timer: Timer::from_seconds(ENEMY_KNOCKBACK_DURATION, TimerMode::Once),
+                    },
+                ));
+
                 break;
             }
         }
@@ -30,16 +51,33 @@ pub fn handle_spell_collisions(
 
 #[allow(clippy::type_complexity)]
 pub fn handle_enemy_player_collisions(
-    mut player_query: Query<(&Transform, &mut Health), (With<Player>, Without<Enemy>)>,
+    mut commands: Commands,
+    mut player_query: Query<
+        (Entity, &Transform, &mut Health),
+        (With<Player>, Without<Enemy>, Without<Invincible>),
+    >,
     enemy_query: Query<&Transform, With<Enemy>>,
 ) {
-    if let Ok((player_transform, mut player_health)) = player_query.single_mut() {
+    if let Ok((player_entity, player_transform, mut player_health)) = player_query.single_mut() {
         for enemy_transform in &enemy_query {
             let distance = player_transform
                 .translation
                 .distance(enemy_transform.translation);
             if distance < 30.0 {
                 player_health.0 -= 1.0; // Subtract some health
+
+                let knockback_dir = (player_transform.translation - enemy_transform.translation)
+                    .truncate()
+                    .normalize_or_zero();
+
+                commands.entity(player_entity).insert((
+                    Invincible(Timer::from_seconds(INVINCIBILITY_DURATION, TimerMode::Once)),
+                    Knockback {
+                        velocity: knockback_dir * KNOCKBACK_SPEED,
+                        timer: Timer::from_seconds(KNOCKBACK_DURATION, TimerMode::Once),
+                    },
+                ));
+                break;
             }
         }
     }

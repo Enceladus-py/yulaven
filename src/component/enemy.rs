@@ -8,3 +8,6 @@ use bevy::{
 pub struct Enemy {
     pub active: bool,
 }
+
+#[derive(Component)]
+pub struct DamageFlash(pub bevy::time::Timer);

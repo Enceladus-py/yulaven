@@ -3,11 +3,11 @@
 
 use bevy::prelude::*;
 use system::{
-    animation::animate_sprite,
+    animation::{animate_sprite, handle_damage_flash, handle_invincibility},
     combat::{handle_death, handle_enemy_player_collisions, handle_spell_collisions},
     enemy::{EnemySpawnTimer, GameTimer, move_enemies, spawn_enemies},
     experience::{LevelUpEvent, collect_gems},
-    movement::{move_fireballs, move_orbs, move_player},
+    movement::{apply_knockback, move_fireballs, move_orbs, move_player},
     spawn::{fire_fireballs, fire_orbs},
     startup::setup,
     ui::{
@@ -42,6 +42,7 @@ fn main() {
             Update,
             (
                 move_player,
+                apply_knockback,
                 move_fireballs,
                 move_orbs,
                 move_enemies,
@@ -49,6 +50,8 @@ fn main() {
                 fire_orbs,
                 spawn_enemies,
                 animate_sprite,
+                handle_invincibility,
+                handle_damage_flash,
                 handle_spell_collisions,
                 handle_enemy_player_collisions,
                 handle_death,

@@ -6,10 +6,26 @@ use crate::{
         enemy::Enemy,
         fireball::Fireball,
         orb::Orb,
-        player::{Player, PlayerAnimation},
+        player::{Knockback, Player, PlayerAnimation},
     },
     constant::{FIREBALL_SPEED_FACTOR, FIREBALL_START_SPEED, ORB_SPEED, PLAYER_SPEED},
 };
+
+pub fn apply_knockback(
+    mut commands: Commands,
+    mut query: Query<(Entity, &mut Transform, &mut Knockback)>,
+    time: Res<Time>,
+) {
+    for (entity, mut transform, mut knockback) in &mut query {
+        knockback.timer.tick(time.delta());
+
+        transform.translation += (knockback.velocity * time.delta_secs()).extend(0.0);
+
+        if knockback.timer.is_finished() {
+            commands.entity(entity).remove::<Knockback>();
+        }
+    }
+}
 
 // Player movement system
 pub fn move_player(

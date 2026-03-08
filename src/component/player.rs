@@ -32,3 +32,12 @@ pub struct PlayerAnimation {
     pub first_frame: usize,
     pub attack_timer: Timer,
 }
+
+#[derive(Component)]
+pub struct Invincible(pub Timer);
+
+#[derive(Component)]
+pub struct Knockback {
+    pub velocity: Vec2,
+    pub timer: Timer,
+}
