@@ -3,4 +3,34 @@
 .DS_Store
 **/.DS_Store
 *.swp
+# No newline at end of file
 *~
+
+# Gradle
+.gradle/
+build/
+android/.gradle/
+android/build/
+android/app/build/
+
+# IDEs
+.idea/
+android/.idea/
+*.iml
+android/*.iml
+
+# Android NDK / CMake
+.externalNativeBuild/
+android/app/.cxx/
+android/app/.externalNativeBuild/
+android/app/src/main/jniLibs/
+
+# Local configuration
+local.properties
+android/local.properties
+
+# Android artifacts
+*.apk
+*.aar
+*.jks
+captures/
