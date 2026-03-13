@@ -1,24 +1,18 @@
 use bevy::prelude::*;
 
-use crate::component::{
-    camera::MainCamera,
-    enemy::Enemy,
-    experience::PlayerStats,
-    health::Health,
-    player::{Player, PlayerAnimation},
-};
+use super::components::{Health, MainCamera};
+use crate::enemy::components::Enemy;
+use crate::map::components::{Collider, Structure, StructureAssets, TerrainTile};
+use crate::player::components::{Player, PlayerAnimation, PlayerStats};
 
-// Setup the game: spawn the camera and player entity
 #[allow(clippy::cast_precision_loss, clippy::too_many_lines)]
 pub fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
 ) {
-    // Camera
     commands.spawn((Camera2d, MainCamera));
 
-    // Terrain Structure Assets
     let pine_tree: Handle<Image> = asset_server.load("structures/pine_tree.png");
 
     let mut stone_rocks = Vec::new();
@@ -88,7 +82,7 @@ pub fn setup(
         },
     );
 
-    commands.insert_resource(crate::component::map::StructureAssets {
+    commands.insert_resource(StructureAssets {
         grass_terrain: grass_terrain.clone(),
         dirt_terrain,
         stone_terrain,
@@ -98,11 +92,7 @@ pub fn setup(
         stone_rocks,
         ruined_pillars,
     });
-    // Just putting them in a vec or similar wouldn't work easily with commands without cloning handles,
-    // so we pass them to the map system when needed or just create dummy sprites.
-    // We will build the dummy sprites here.
 
-    // Terrain
     let terrain_handle = grass_terrain;
     for x in -1..=1 {
         for y in -1..=1 {
@@ -120,23 +110,22 @@ pub fn setup(
                         ..Default::default()
                     },
                     Transform::from_xyz(x as f32 * 4096.0, y as f32 * 4096.0, -10.0),
-                    crate::component::map::TerrainTile {
+                    TerrainTile {
                         offset: IVec2::new(x, y),
-                        logical_coord: IVec2::new(-999, -999), // Force initial map system refresh
+                        logical_coord: IVec2::new(-999, -999),
                     },
                 ))
                 .with_children(|parent| {
-                    // Spawn 20 pooled structures per tile
                     for i in 0..20 {
                         parent.spawn((
                             Sprite {
                                 color: Color::srgb(0.4, 0.4, 0.4),
-                                image: pine_tree.clone(), // Default image, will be overwritten by map system
+                                image: pine_tree.clone(),
                                 ..Default::default()
                             },
-                            Transform::from_xyz(0.0, 0.0, 1.0), // Z = 1.0 to render above terrain
-                            crate::component::map::Structure { local_index: i },
-                            crate::component::map::Collider { radius: 100.0 },
+                            Transform::from_xyz(0.0, 0.0, 1.0),
+                            Structure { local_index: i },
+                            Collider { radius: 100.0 },
                         ));
                     }
                 });
@@ -152,7 +141,7 @@ pub fn setup(
             image: texture_handle.clone(),
             texture_atlas: Some(TextureAtlas {
                 layout: texture_atlas_handle,
-                index: 0, // Start with the first frame
+                index: 0,
             }),
             ..Default::default()
         },
@@ -162,7 +151,7 @@ pub fn setup(
             ..Default::default()
         },
         Player {
-            facing_direction: Vec2::new(1.0, 0.0), // facing right
+            facing_direction: Vec2::new(1.0, 0.0),
             ..Default::default()
         },
         Health(100.0),

@@ -27,3 +27,8 @@ pub struct StructureAssets {
     pub stone_rocks: Vec<Handle<Image>>,
     pub ruined_pillars: Vec<Handle<Image>>,
 }
+
+#[derive(Component)]
+pub struct ExperienceGem {
+    pub amount: f32,
+}

@@ -1,14 +1,11 @@
 use bevy::prelude::*;
 
-use crate::component::{
-    map::{Structure, TerrainTile},
-    player::Player,
-};
+use super::components::{ExperienceGem, Structure, TerrainTile};
+use crate::player::components::Player;
+use crate::player::components::{LevelUpEvent, PlayerStats};
 
 const TILE_SIZE: f32 = 4096.0;
 
-// Simple deterministic pseudo-random hash function based on world coords
-// Returns float between 0.0 and 1.0
 #[allow(clippy::cast_precision_loss)]
 pub fn pcg_hash(state: u32) -> f32 {
     let word = ((state >> ((state >> 28) + 4)) ^ state).wrapping_mul(277_803_737);
@@ -33,7 +30,7 @@ pub fn update_terrain(
         (&mut Transform, &mut Sprite, &Structure),
         (Without<Player>, Without<TerrainTile>),
     >,
-    structure_assets: Res<crate::component::map::StructureAssets>,
+    structure_assets: Res<crate::map::components::StructureAssets>,
     _asset_server: Res<AssetServer>,
 ) {
     let Ok(player_transform) = player_query.single() else {
@@ -68,12 +65,10 @@ pub fn update_terrain(
         transform.translation.x = target_x;
         transform.translation.y = target_y;
 
-        // If the tile just spawned into this logical position, refresh its structures
         if needs_refresh {
             let base_seed = (terrain.logical_coord.x.wrapping_mul(73_856_093_i32))
                 ^ (terrain.logical_coord.y.wrapping_mul(19_349_663_i32));
 
-            // Randomly pick terrain tile
             let rng_terrain = pcg_hash(base_seed as u32);
             if rng_terrain < 0.3 {
                 tile_sprite.image = grass_terrain.clone();
@@ -99,12 +94,10 @@ pub fn update_terrain(
                     let rng_y = pcg_hash(seed.wrapping_add(1));
                     let rng_type = pcg_hash(seed.wrapping_add(2));
 
-                    // Random position within the tile
                     str_transform.translation.x = (rng_x - 0.5) * TILE_SIZE;
                     str_transform.translation.y = (rng_y - 0.5) * TILE_SIZE;
                     str_transform.translation.z = 1.0 - (str_transform.translation.y / TILE_SIZE);
 
-                    // Assign sprite based on random value
                     if rng_type < 0.6 {
                         sprite.image = structure_assets.pine_tree.clone();
                     } else if rng_type < 0.9 {
@@ -114,6 +107,41 @@ pub fn update_terrain(
                         let idx = (pcg_hash(seed.wrapping_add(3)) * 4.0) as usize % 4;
                         sprite.image = structure_assets.ruined_pillars[idx].clone();
                     }
+                }
+            }
+        }
+    }
+}
+
+pub fn collect_gems(
+    mut commands: Commands,
+    mut player_query: Query<(&Transform, &mut PlayerStats), With<Player>>,
+    gem_query: Query<(Entity, &Transform, &ExperienceGem)>,
+    mut ev_level_up: MessageWriter<LevelUpEvent>,
+) {
+    if let Ok((player_transform, mut player_stats)) = player_query.single_mut() {
+        let magnet_radius = 150.0;
+        let collect_radius = 30.0;
+
+        for (gem_entity, gem_transform, gem) in &gem_query {
+            let distance = player_transform
+                .translation
+                .distance(gem_transform.translation);
+
+            if distance < magnet_radius && distance > collect_radius {
+                // Future: Move gem towards player
+            }
+
+            if distance < collect_radius {
+                player_stats.current_xp += gem.amount;
+                commands.entity(gem_entity).despawn();
+
+                if player_stats.current_xp >= player_stats.required_xp {
+                    player_stats.level += 1;
+                    player_stats.current_xp -= player_stats.required_xp;
+                    player_stats.required_xp *= 1.5;
+                    ev_level_up.write(LevelUpEvent);
+                    info!("Level Up! Now level {}", player_stats.level);
                 }
             }
         }

@@ -1,6 +1,6 @@
 use bevy::{
     math::Vec2,
-    prelude::Component,
+    prelude::{Component, Message},
     sprite::Sprite,
     time::{Timer, TimerMode},
 };
@@ -34,10 +34,22 @@ pub struct PlayerAnimation {
 }
 
 #[derive(Component)]
-pub struct Invincible(pub Timer);
-
-#[derive(Component)]
-pub struct Knockback {
-    pub velocity: Vec2,
-    pub timer: Timer,
+pub struct PlayerStats {
+    pub level: u32,
+    pub current_xp: f32,
+    pub required_xp: f32,
 }
+
+impl Default for PlayerStats {
+    fn default() -> Self {
+        Self {
+            level: 1,
+            current_xp: 0.0,
+            required_xp: 10.0,
+        }
+    }
+}
+
+// Event to signal level up
+#[derive(Message)]
+pub struct LevelUpEvent;

@@ -1,7 +1,9 @@
 use bevy::prelude::*;
 use rand::Rng;
 
-use crate::component::{enemy::Enemy, health::Health, player::Player};
+use super::components::Enemy;
+use crate::core::components::Health;
+use crate::player::components::Player;
 
 const AGGRO_RADIUS: f32 = 600.0;
 
@@ -71,8 +73,8 @@ pub fn move_enemies(
     mut enemy_query: Query<(&mut Transform, &mut Enemy)>,
     player_query: Query<&Transform, (With<Player>, Without<Enemy>)>,
     structure_query: Query<
-        (&GlobalTransform, &crate::component::map::Collider),
-        With<crate::component::map::Structure>,
+        (&GlobalTransform, &crate::map::components::Collider),
+        With<crate::map::components::Structure>,
     >,
     time: Res<Time>,
 ) {
