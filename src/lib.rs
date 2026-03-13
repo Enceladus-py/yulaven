@@ -18,6 +18,16 @@ pub use core::state::GameState;
 #[cfg(target_os = "android")]
 #[bevy_main]
 fn main() {
+    android_logger::init_once(
+        android_logger::Config::default()
+            .with_max_level(log::LevelFilter::Trace)
+            .with_tag("com.beratdalsuna.yulaven"),
+    );
+
+    std::panic::set_hook(Box::new(|panic_info| {
+        log::error!("PANIC occurred: {}", panic_info);
+    }));
+
     run_game();
 }
 

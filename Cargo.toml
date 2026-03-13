@@ -4,8 +4,13 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bevy = { version = "0.18", features = ["dynamic_linking"] }
+bevy = { version = "0.18" }
 rand = "0.8"
+log = "0.4"
+android_logger = "0.14"
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+bevy = { version = "0.18", features = ["dynamic_linking"] }
 
 [package.metadata.android]
 package = "com.beratdalsuna.yulaven"

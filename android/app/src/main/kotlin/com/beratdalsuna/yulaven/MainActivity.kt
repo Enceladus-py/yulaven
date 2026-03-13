@@ -1,7 +1,7 @@
-package org.beratdalsuna.yulaven
+package com.beratdalsuna.yulaven
 
-import com.google.android.games.GameActivity
 import android.os.Bundle
+import com.google.androidgamesdk.GameActivity
 
 class MainActivity : GameActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
