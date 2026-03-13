@@ -2,11 +2,13 @@ use bevy::prelude::*;
 
 use super::components::{Player, PlayerAnimation};
 use crate::map::components::{Collider, Structure};
+use crate::ui::JoystickInput;
 use crate::{constant::PLAYER_SPEED, core::components::MainCamera};
 
 // Player movement system
 pub fn move_player(
     keyboard_input: Res<ButtonInput<KeyCode>>,
+    joystick: Res<JoystickInput>,
     mut player_query: Query<(&mut Transform, &mut PlayerAnimation, &mut Player), With<Player>>,
     mut camera_query: Query<&mut Transform, (With<MainCamera>, Without<Player>)>,
     structure_query: Query<(&GlobalTransform, &Collider), With<Structure>>,
@@ -14,34 +16,48 @@ pub fn move_player(
 ) {
     let mut direction = Vec3::ZERO;
     let mut facing_direction = Vec2::new(1.0, 0.0);
+    let mut has_input = false;
 
+    // --- Keyboard input ---
     if keyboard_input.pressed(KeyCode::ArrowUp) {
         direction.y += 1.0;
         facing_direction = Vec2::new(0.0, 1.0);
+        has_input = true;
     }
     if keyboard_input.pressed(KeyCode::ArrowDown) {
         direction.y -= 1.0;
         facing_direction = Vec2::new(0.0, -1.0);
+        has_input = true;
     }
     if keyboard_input.pressed(KeyCode::ArrowLeft) {
         direction.x -= 1.0;
         facing_direction = Vec2::new(-1.0, 0.0);
+        has_input = true;
     }
     if keyboard_input.pressed(KeyCode::ArrowRight) {
         direction.x += 1.0;
         facing_direction = Vec2::new(1.0, 0.0);
+        has_input = true;
+    }
+
+    // --- Joystick / touch input (additive, overrides facing when active) ---
+    if joystick.direction.length_squared() > 0.01 {
+        direction += joystick.direction.extend(0.0);
+        facing_direction = joystick.direction.normalize();
+        has_input = true;
     }
 
     if let Ok((mut player_transform, mut animation, mut player)) = player_query.single_mut() {
-        if keyboard_input.pressed(KeyCode::ArrowUp) {
-            player_transform.scale.y = 4.3; // Slight stretch when moving up
-        } else if keyboard_input.pressed(KeyCode::ArrowDown) {
-            player_transform.scale.y = 3.6; // Slight squash when moving down
+        // Subtle squash/stretch based on vertical movement.
+        if direction.y > 0.0 {
+            player_transform.scale.y = 4.3;
+        } else if direction.y < 0.0 {
+            player_transform.scale.y = 3.6;
         } else {
-            player_transform.scale.y = 4.0; // Reset when idle
+            player_transform.scale.y = 4.0;
         }
 
-        if direction.length_squared() > 0.0 {
+        if has_input && direction.length_squared() > 0.0 {
             // Normalize direction and move the player
             let mut new_translation = player_transform.translation
                 + direction.normalize() * PLAYER_SPEED * time.delta_secs();
@@ -61,7 +77,6 @@ pub fn move_player(
             }
 
             player_transform.translation = new_translation;
-
             player.facing_direction = facing_direction;
 
             // Only change to running animation if not attacking

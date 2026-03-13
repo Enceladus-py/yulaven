@@ -2,12 +2,14 @@ use bevy::prelude::*;
 
 pub mod game_over;
 pub mod hud;
+pub mod joystick;
 pub mod level_up;
 pub mod map_ui;
 
 // Re-export common UI components/markers if needed widely
 pub use game_over::*;
 pub use hud::*;
+pub use joystick::JoystickInput;
 pub use level_up::*;
 pub use map_ui::*;
 
@@ -15,30 +17,40 @@ pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            Startup,
-            (
-                hud::spawn_hud,
-                hud::spawn_weapon_hud,
-                map_ui::spawn_minimap_hud,
-                map_ui::spawn_large_map,
-            ),
-        )
-        .add_systems(
-            Update,
-            (
-                hud::update_hud,
-                hud::update_weapon_hud,
-                map_ui::toggle_map,
-                map_ui::update_map,
+        app.init_resource::<joystick::JoystickInput>()
+            .init_resource::<joystick::JoystickFinger>()
+            .add_systems(
+                Startup,
+                (
+                    hud::spawn_hud,
+                    hud::spawn_weapon_hud,
+                    map_ui::spawn_minimap_hud,
+                    map_ui::spawn_large_map,
+                ),
             )
-                .run_if(in_state(crate::GameState::Playing)),
-        )
-        .add_systems(
-            Update,
-            level_up::transition_to_levelup.run_if(in_state(crate::GameState::Playing)),
-        )
-        .add_systems(
+            .add_systems(
+                Update,
+                (
+                    hud::update_hud,
+                    hud::update_weapon_hud,
+                    map_ui::toggle_map,
+                    map_ui::update_map,
+                )
+                    .run_if(in_state(crate::GameState::Playing)),
+            )
+            .add_systems(
+                Update,
+                level_up::transition_to_levelup.run_if(in_state(crate::GameState::Playing)),
+            );
+
+        #[cfg(any(target_os = "android", target_os = "ios"))]
+        app.add_systems(Startup, joystick::spawn_joystick)
+            .add_systems(
+                Update,
+                joystick::update_joystick.run_if(in_state(crate::GameState::Playing)),
+            );
+
+        app.add_systems(
             OnEnter(crate::GameState::LevelUp),
             level_up::spawn_levelup_menu,
         )

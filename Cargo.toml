@@ -7,19 +7,36 @@ edition = "2024"
 bevy = { version = "0.18", features = ["dynamic_linking"] }
 rand = "0.8"
 
-# Enable a small amount of optimization in the dev profile.
-[profile.dev]
-opt-level = 1
+[package.metadata.android]
+package = "com.beratdalsuna.yulaven"
+orientation = "portrait"
+min_sdk_version = 30
+target_sdk_version = 34
+assets = "assets"
 
-# Enable a large amount of optimization in the dev profile for dependencies.
+# cdylib  → Android APK (cargo-apk loads it as a shared lib)
+# rlib    → keeps the desktop binary working
+[lib]
+name = "yulaven"
+crate-type = ["cdylib", "rlib"]
+# Enable full optimization in the dev profile for dependencies.
 [profile.dev.package."*"]
 opt-level = 3
 
-# Enable more optimization in the release profile at the cost of compile time.
+# Apply similar optimizations to the main crate for a smaller debug APK.
+[profile.dev]
+opt-level = 1
+strip = false
+lto = "off"
+
+# Enable more optimization in the release profile.
 [profile.release]
+opt-level = 3
+# Strip symbols to significantly reduce APK size.
+strip = true
 # Compile the entire crate as one unit.
-# Slows compile times, marginal improvements.
 codegen-units = 1
-# Do a second optimization pass over the entire program, including dependencies.
-# Slows compile times, marginal improvements.
-lto = "thin"
+# Do a second optimization pass over the entire program.
+lto = true
+# Optimize for size as well.
+# panic = "abort"
