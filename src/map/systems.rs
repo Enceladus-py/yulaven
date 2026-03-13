@@ -116,20 +116,24 @@ pub fn update_terrain(
 pub fn collect_gems(
     mut commands: Commands,
     mut player_query: Query<(&Transform, &mut PlayerStats), With<Player>>,
-    gem_query: Query<(Entity, &Transform, &ExperienceGem)>,
+    mut gem_query: Query<(Entity, &mut Transform, &ExperienceGem), Without<Player>>,
     mut ev_level_up: MessageWriter<LevelUpEvent>,
+    time: Res<Time>,
 ) {
     if let Ok((player_transform, mut player_stats)) = player_query.single_mut() {
-        let magnet_radius = 150.0;
         let collect_radius = 30.0;
+        let magnet_radius = player_stats.magnet_radius;
+        let pull_speed = 400.0;
 
-        for (gem_entity, gem_transform, gem) in &gem_query {
+        for (gem_entity, mut gem_transform, gem) in &mut gem_query {
             let distance = player_transform
                 .translation
                 .distance(gem_transform.translation);
 
             if distance < magnet_radius && distance > collect_radius {
-                // Future: Move gem towards player
+                let direction =
+                    (player_transform.translation - gem_transform.translation).normalize_or_zero();
+                gem_transform.translation += direction * pull_speed * time.delta_secs();
             }
 
             if distance < collect_radius {
@@ -140,6 +144,7 @@ pub fn collect_gems(
                     player_stats.level += 1;
                     player_stats.current_xp -= player_stats.required_xp;
                     player_stats.required_xp *= 1.5;
+                    player_stats.magnet_radius += 10.0;
                     ev_level_up.write(LevelUpEvent);
                     info!("Level Up! Now level {}", player_stats.level);
                 }

@@ -38,6 +38,7 @@ pub struct PlayerStats {
     pub level: u32,
     pub current_xp: f32,
     pub required_xp: f32,
+    pub magnet_radius: f32,
 }
 
 impl Default for PlayerStats {
@@ -46,6 +47,7 @@ impl Default for PlayerStats {
             level: 1,
             current_xp: 0.0,
             required_xp: 10.0,
+            magnet_radius: 150.0,
         }
     }
 }
