@@ -1,7 +1,6 @@
 use bevy::prelude::*;
 
 use super::components::{Health, MainCamera};
-use crate::enemy::components::Enemy;
 use crate::map::components::{Collider, Structure, StructureAssets, TerrainTile};
 use crate::player::components::{Player, PlayerAnimation, PlayerStats};
 
@@ -162,18 +161,5 @@ pub fn setup(
             last_frame: 3,
             attack_timer: Timer::from_seconds(0.0, TimerMode::Once),
         },
-    ));
-
-    commands.spawn((
-        Sprite {
-            color: Color::srgb(0.6, 0.6, 0.3),
-            custom_size: Some(Vec2::new(100.0, 50.0)),
-            ..Default::default()
-        },
-        Transform {
-            translation: Vec3::new(0.0, -50.0, 0.0),
-            ..Default::default()
-        },
-        Enemy { active: false },
     ));
 }
