@@ -10,6 +10,7 @@ class MainActivity : GameActivity() {
 
     companion object {
         init {
+            System.loadLibrary("c++_shared")
             System.loadLibrary("yulaven")
         }
     }

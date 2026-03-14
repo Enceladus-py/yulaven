@@ -20,7 +20,7 @@ pub use core::state::GameState;
 fn main() {
     android_logger::init_once(
         android_logger::Config::default()
-            .with_max_level(log::LevelFilter::Trace)
+            .with_max_level(log::LevelFilter::Info)
             .with_tag("com.beratdalsuna.yulaven"),
     );
 
@@ -38,7 +38,7 @@ pub fn run_game() {
                 .set(ImagePlugin::default_nearest())
                 .set(WindowPlugin {
                     primary_window: Some(Window {
-                        title: "Arcane Survivors".to_string(),
+                        title: "Yulaven".to_string(),
                         ..default()
                     }),
                     ..default()
@@ -50,7 +50,6 @@ pub fn run_game() {
         .add_plugins(combat::CombatPlugin)
         .add_plugins(map::MapPlugin)
         .add_plugins(ui::UiPlugin)
-        .insert_resource(ClearColor(Color::srgb(0.5, 0.1, 0.1))) // Bright red to see clearly
         .add_message::<player::components::LevelUpEvent>()
         .run();
 }
