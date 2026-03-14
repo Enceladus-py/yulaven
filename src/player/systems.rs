@@ -117,12 +117,10 @@ pub fn animate_player(
                     };
             }
 
-            sprite.flip_x = if player.facing_direction == (Vec2 { x: -1.0, y: 0.0 }) {
-                true
-            } else if player.facing_direction == (Vec2 { x: 1.0, y: 0.0 }) {
-                false
-            } else {
-                sprite.flip_x
+            if player.facing_direction.x < -0.1 {
+                sprite.flip_x = true;
+            } else if player.facing_direction.x > 0.1 {
+                sprite.flip_x = false;
             }
         }
     }
