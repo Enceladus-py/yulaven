@@ -33,24 +33,15 @@ pub fn spawn_joystick(mut commands: Commands) {
     let base_size = Val::VMin(JOYSTICK_VMIN * 2.0);
     let knob_size = Val::VMin(JOYSTICK_VMIN * 0.65 * 2.0);
 
-    // Joystick sits in the lower-center.
+    // Joystick is initially hidden.
     commands
         .spawn((
             Node {
                 position_type: PositionType::Absolute,
-                left: Val::Percent(50.0),
-                bottom: Val::Percent(10.0),
-                // We'll use transform/translation for centering instead of margins if possible,
-                // but stick to Node layout for now with VMin.
+                display: Display::None,
                 width: base_size,
                 height: base_size,
-                // Center the base on (50%, 10%)
-                margin: UiRect::new(
-                    Val::VMin(-JOYSTICK_VMIN),
-                    Val::Px(0.0),
-                    Val::Px(0.0),
-                    Val::VMin(-JOYSTICK_VMIN),
-                ),
+                border_radius: BorderRadius::MAX,
                 ..default()
             },
             BackgroundColor(Color::srgba(1.0, 1.0, 1.0, 0.15)),
@@ -63,6 +54,7 @@ pub fn spawn_joystick(mut commands: Commands) {
                     position_type: PositionType::Absolute,
                     width: knob_size,
                     height: knob_size,
+                    border_radius: BorderRadius::MAX,
                     // Center the knob in the base
                     left: Val::Percent(50.0),
                     top: Val::Percent(50.0),
@@ -86,7 +78,8 @@ pub fn update_joystick(
     mut touch_events: MessageReader<TouchInput>,
     mut finger: ResMut<JoystickFinger>,
     mut joystick_input: ResMut<JoystickInput>,
-    mut knob_query: Query<&mut Node, With<JoystickKnob>>,
+    mut base_query: Query<&mut Node, (With<JoystickBase>, Without<JoystickKnob>)>,
+    mut knob_query: Query<&mut Node, (With<JoystickKnob>, Without<JoystickBase>)>,
     windows: Query<&Window>,
 ) {
     let Ok(window) = windows.single() else {
@@ -96,38 +89,40 @@ pub fn update_joystick(
     let vmin = window_size.x.min(window_size.y);
     let pixel_radius = vmin * (JOYSTICK_VMIN / 100.0);
 
-    let center = window_size / 2.0;
-
     for event in touch_events.read() {
-        // Flip Y so that (0,0) is bottom-left, matching our UI layout.
-        let pos = Vec2::new(event.position.x, window_size.y - event.position.y);
-
         match event.phase {
             bevy::input::touch::TouchPhase::Started => {
-                // Only respond if no finger is tracked yet, and the touch is near the center.
-                if finger.touch_id.is_none() && pos.distance(center) < pixel_radius * 2.0 {
+                // Only respond if no finger is tracked yet.
+                if finger.touch_id.is_none() {
                     finger.touch_id = Some(event.id);
-                    finger.anchor = center;
+                    finger.anchor = event.position;
+
+                    if let Ok(mut base_node) = base_query.single_mut() {
+                        base_node.display = Display::Flex;
+                        // Position the base center at the touch point.
+                        // event.position is in logical pixels from top-left.
+                        base_node.left = Val::Px(event.position.x - pixel_radius);
+                        base_node.top = Val::Px(event.position.y - pixel_radius);
+                    }
                 }
             }
             bevy::input::touch::TouchPhase::Moved => {
                 if finger.touch_id == Some(event.id) {
-                    let delta = pos - finger.anchor;
+                    let delta = event.position - finger.anchor;
                     let clamped = if delta.length() > pixel_radius {
                         delta.normalize() * pixel_radius
                     } else {
                         delta
                     };
 
-                    joystick_input.direction = clamped / pixel_radius;
+                    joystick_input.direction = Vec2::new(clamped.x, -clamped.y) / pixel_radius;
 
                     if let Ok(mut knob_node) = knob_query.single_mut() {
                         // Offset by 50% (center) then add pixel delta converted to VMin
                         let x_offset = (clamped.x / vmin) * 100.0;
                         let y_offset = (clamped.y / vmin) * 100.0;
                         knob_node.left = Val::Percent(50.0 + x_offset);
-                        // UI Y (top) is inverted relative to screen Y (bottom-up)
-                        knob_node.top = Val::Percent(50.0 - y_offset);
+                        knob_node.top = Val::Percent(50.0 + y_offset);
                     }
                 }
             }
@@ -136,6 +131,10 @@ pub fn update_joystick(
                     finger.touch_id = None;
                     finger.anchor = Vec2::ZERO;
                     joystick_input.direction = Vec2::ZERO;
+
+                    if let Ok(mut base_node) = base_query.single_mut() {
+                        base_node.display = Display::None;
+                    }
 
                     // Reset knob to center.
                     if let Ok(mut knob_node) = knob_query.single_mut() {
