@@ -1,12 +1,11 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
 }
 
 android {
     namespace 'com.beratdalsuna.yulaven'
     compileSdk 34
-    ndkVersion "26.1.10909125"
+    ndkVersion "29.0.14206865"
 
     defaultConfig {
         applicationId "com.beratdalsuna.yulaven"
@@ -38,9 +37,6 @@ android {
             assets.srcDirs += files('../../assets')
         }
     }
-    kotlinOptions {
-        jvmTarget = '1.8'
-    }
 }
 
 dependencies {
@@ -48,7 +44,6 @@ dependencies {
     implementation libs.appcompat
     implementation libs.material
     implementation libs.games.activity
-    implementation libs.core.ktx
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
