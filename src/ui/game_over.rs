@@ -37,9 +37,9 @@ pub fn spawn_gameover_menu(mut commands: Commands) {
                 .spawn((
                     Button,
                     Node {
-                        width: Val::Px(200.0),
-                        height: Val::Px(65.0),
-                        margin: UiRect::all(Val::Px(20.0)),
+                        width: Val::VMin(35.0),
+                        height: Val::VMin(10.0),
+                        margin: UiRect::all(Val::VMin(4.0)),
                         justify_content: JustifyContent::Center,
                         align_items: AlignItems::Center,
                         ..Default::default()

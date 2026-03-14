@@ -25,30 +25,32 @@ pub struct JoystickFinger {
     pub anchor: Vec2,
 }
 
-/// The radius of the joystick base in logical pixels.
-pub const JOYSTICK_RADIUS: f32 = 80.0;
+/// Default base radius as a percentage of the smaller screen dimension (`VMin`).
+pub const JOYSTICK_VMIN: f32 = 15.0;
 
 #[cfg(any(target_os = "android", target_os = "ios"))]
 pub fn spawn_joystick(mut commands: Commands) {
-    let base_size = JOYSTICK_RADIUS * 2.0;
-    let knob_size = JOYSTICK_RADIUS * 0.65;
-    let knob_offset = JOYSTICK_RADIUS - knob_size / 2.0;
+    let base_size = Val::VMin(JOYSTICK_VMIN * 2.0);
+    let knob_size = Val::VMin(JOYSTICK_VMIN * 0.65 * 2.0);
 
-    // Joystick sits in the lower-left quadrant.
+    // Joystick sits in the lower-center.
     commands
         .spawn((
             Node {
                 position_type: PositionType::Absolute,
                 left: Val::Percent(50.0),
-                bottom: Val::Px(150.0),
+                bottom: Val::Percent(10.0),
+                // We'll use transform/translation for centering instead of margins if possible,
+                // but stick to Node layout for now with VMin.
+                width: base_size,
+                height: base_size,
+                // Center the base on (50%, 10%)
                 margin: UiRect::new(
-                    Val::Px(-JOYSTICK_RADIUS),
+                    Val::VMin(-JOYSTICK_VMIN),
                     Val::Px(0.0),
                     Val::Px(0.0),
-                    Val::Px(-JOYSTICK_RADIUS),
+                    Val::VMin(-JOYSTICK_VMIN),
                 ),
-                width: Val::Px(base_size),
-                height: Val::Px(base_size),
                 ..default()
             },
             BackgroundColor(Color::srgba(1.0, 1.0, 1.0, 0.15)),
@@ -59,10 +61,17 @@ pub fn spawn_joystick(mut commands: Commands) {
             parent.spawn((
                 Node {
                     position_type: PositionType::Absolute,
-                    width: Val::Px(knob_size),
-                    height: Val::Px(knob_size),
-                    left: Val::Px(knob_offset),
-                    top: Val::Px(knob_offset),
+                    width: knob_size,
+                    height: knob_size,
+                    // Center the knob in the base
+                    left: Val::Percent(50.0),
+                    top: Val::Percent(50.0),
+                    margin: UiRect::new(
+                        Val::VMin(-JOYSTICK_VMIN * 0.65),
+                        Val::Px(0.0),
+                        Val::VMin(-JOYSTICK_VMIN * 0.65),
+                        Val::Px(0.0),
+                    ),
                     ..default()
                 },
                 BackgroundColor(Color::srgba(1.0, 1.0, 1.0, 0.55)),
@@ -80,13 +89,14 @@ pub fn update_joystick(
     mut knob_query: Query<&mut Node, With<JoystickKnob>>,
     windows: Query<&Window>,
 ) {
-    let window_size = windows.iter().next().map_or(Vec2::new(1280.0, 800.0), |w| {
-        Vec2::new(w.resolution.width(), w.resolution.height())
-    });
+    let Ok(window) = windows.single() else {
+        return;
+    };
+    let window_size = Vec2::new(window.resolution.width(), window.resolution.height());
+    let vmin = window_size.x.min(window_size.y);
+    let pixel_radius = vmin * (JOYSTICK_VMIN / 100.0);
 
     let center = window_size / 2.0;
-    let knob_size = JOYSTICK_RADIUS * 0.65;
-    let knob_offset = JOYSTICK_RADIUS - knob_size / 2.0;
 
     for event in touch_events.read() {
         // Flip Y so that (0,0) is bottom-left, matching our UI layout.
@@ -95,7 +105,7 @@ pub fn update_joystick(
         match event.phase {
             bevy::input::touch::TouchPhase::Started => {
                 // Only respond if no finger is tracked yet, and the touch is near the center.
-                if finger.touch_id.is_none() && pos.distance(center) < 200.0 {
+                if finger.touch_id.is_none() && pos.distance(center) < pixel_radius * 2.0 {
                     finger.touch_id = Some(event.id);
                     finger.anchor = center;
                 }
@@ -103,18 +113,21 @@ pub fn update_joystick(
             bevy::input::touch::TouchPhase::Moved => {
                 if finger.touch_id == Some(event.id) {
                     let delta = pos - finger.anchor;
-                    let clamped = if delta.length() > JOYSTICK_RADIUS {
-                        delta.normalize() * JOYSTICK_RADIUS
+                    let clamped = if delta.length() > pixel_radius {
+                        delta.normalize() * pixel_radius
                     } else {
                         delta
                     };
 
-                    joystick_input.direction = clamped / JOYSTICK_RADIUS;
+                    joystick_input.direction = clamped / pixel_radius;
 
                     if let Ok(mut knob_node) = knob_query.single_mut() {
-                        knob_node.left = Val::Px(knob_offset + clamped.x);
-                        // UI Y is inverted relative to game Y.
-                        knob_node.top = Val::Px(knob_offset - clamped.y);
+                        // Offset by 50% (center) then add pixel delta converted to VMin
+                        let x_offset = (clamped.x / vmin) * 100.0;
+                        let y_offset = (clamped.y / vmin) * 100.0;
+                        knob_node.left = Val::Percent(50.0 + x_offset);
+                        // UI Y (top) is inverted relative to screen Y (bottom-up)
+                        knob_node.top = Val::Percent(50.0 - y_offset);
                     }
                 }
             }
@@ -126,8 +139,8 @@ pub fn update_joystick(
 
                     // Reset knob to center.
                     if let Ok(mut knob_node) = knob_query.single_mut() {
-                        knob_node.left = Val::Px(knob_offset);
-                        knob_node.top = Val::Px(knob_offset);
+                        knob_node.left = Val::Percent(50.0);
+                        knob_node.top = Val::Percent(50.0);
                     }
                 }
             }

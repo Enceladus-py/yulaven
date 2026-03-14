@@ -21,10 +21,10 @@ pub fn spawn_hud(mut commands: Commands) {
     commands
         .spawn(Node {
             position_type: PositionType::Absolute,
-            left: Val::Px(16.0),
-            bottom: Val::Px(16.0),
+            left: Val::VMin(2.0),
+            bottom: Val::VMin(2.0),
             flex_direction: FlexDirection::Column,
-            row_gap: Val::Px(8.0),
+            row_gap: Val::VMin(1.0),
             ..Default::default()
         })
         .with_children(|root| {
@@ -47,8 +47,8 @@ pub fn spawn_hud(mut commands: Commands) {
                 // Background track
                 row.spawn((
                     Node {
-                        width: Val::Px(160.0),
-                        height: Val::Px(14.0),
+                        width: Val::VMin(30.0),
+                        height: Val::VMin(2.5),
                         border: UiRect::all(Val::Px(2.0)),
                         overflow: Overflow::clip(),
                         ..Default::default()
@@ -88,8 +88,8 @@ pub fn spawn_hud(mut commands: Commands) {
                 // Background track
                 row.spawn((
                     Node {
-                        width: Val::Px(160.0),
-                        height: Val::Px(14.0),
+                        width: Val::VMin(30.0),
+                        height: Val::VMin(2.5),
                         border: UiRect::all(Val::Px(2.0)),
                         overflow: Overflow::clip(),
                         ..Default::default()
@@ -138,10 +138,10 @@ pub fn spawn_weapon_hud(mut commands: Commands) {
     commands
         .spawn(Node {
             position_type: PositionType::Absolute,
-            right: Val::Px(16.0),
-            bottom: Val::Px(16.0),
+            right: Val::VMin(2.0),
+            bottom: Val::VMin(2.0),
             flex_direction: FlexDirection::Column,
-            row_gap: Val::Px(10.0),
+            row_gap: Val::VMin(1.5),
             ..Default::default()
         })
         .with_children(|root| {
@@ -155,8 +155,8 @@ pub fn spawn_weapon_hud(mut commands: Commands) {
             .with_children(|row| {
                 row.spawn((
                     Node {
-                        width: Val::Px(12.0),
-                        height: Val::Px(12.0),
+                        width: Val::VMin(2.5),
+                        height: Val::VMin(2.5),
                         ..Default::default()
                     },
                     BackgroundColor(Color::srgb(0.2, 0.55, 1.0)),
@@ -171,8 +171,8 @@ pub fn spawn_weapon_hud(mut commands: Commands) {
                 ));
                 row.spawn((
                     Node {
-                        width: Val::Px(120.0),
-                        height: Val::Px(12.0),
+                        width: Val::VMin(20.0),
+                        height: Val::VMin(2.2),
                         border: UiRect::all(Val::Px(2.0)),
                         overflow: Overflow::clip(),
                         ..Default::default()
@@ -203,8 +203,8 @@ pub fn spawn_weapon_hud(mut commands: Commands) {
             .with_children(|row| {
                 row.spawn((
                     Node {
-                        width: Val::Px(12.0),
-                        height: Val::Px(12.0),
+                        width: Val::VMin(2.5),
+                        height: Val::VMin(2.5),
                         ..Default::default()
                     },
                     BackgroundColor(Color::srgb(1.0, 0.4, 0.05)),
@@ -219,8 +219,8 @@ pub fn spawn_weapon_hud(mut commands: Commands) {
                 ));
                 row.spawn((
                     Node {
-                        width: Val::Px(120.0),
-                        height: Val::Px(12.0),
+                        width: Val::VMin(20.0),
+                        height: Val::VMin(2.2),
                         border: UiRect::all(Val::Px(2.0)),
                         overflow: Overflow::clip(),
                         ..Default::default()

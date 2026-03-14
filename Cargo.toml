@@ -45,3 +45,6 @@ codegen-units = 1
 lto = true
 # Optimize for size as well.
 # panic = "abort"
+
+[patch.crates-io]
+wgpu-types = { git = "https://github.com/NiklasEi/wgpu", branch = "patch-bevy-flickering-android" }

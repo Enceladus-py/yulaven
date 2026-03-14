@@ -43,7 +43,7 @@ pub fn spawn_levelup_menu(mut commands: Commands) {
                     ..Default::default()
                 },
                 Node {
-                    margin: UiRect::bottom(Val::Px(20.0)),
+                    margin: UiRect::bottom(Val::VMin(3.0)),
                     ..Default::default()
                 },
             ));
@@ -55,9 +55,9 @@ pub fn spawn_levelup_menu(mut commands: Commands) {
                     .spawn((
                         Button,
                         Node {
-                            width: Val::Px(300.0),
-                            height: Val::Px(65.0),
-                            margin: UiRect::all(Val::Px(10.0)),
+                            width: Val::VMin(45.0),
+                            height: Val::VMin(8.0),
+                            margin: UiRect::all(Val::VMin(1.5)),
                             justify_content: JustifyContent::Center,
                             align_items: AlignItems::Center,
                             ..Default::default()
