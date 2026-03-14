@@ -23,6 +23,7 @@ pub fn transition_to_levelup(
 }
 
 pub fn spawn_levelup_menu(mut commands: Commands) {
+    // Root container: Full screen overlay to dim the background
     commands
         .spawn((
             Node {
@@ -30,36 +31,51 @@ pub fn spawn_levelup_menu(mut commands: Commands) {
                 height: Val::Percent(100.0),
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
-                flex_direction: FlexDirection::Column,
+                position_type: PositionType::Absolute,
                 ..Default::default()
             },
+            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.8)),
+            GlobalZIndex(1000), // Ensure it's above everything
             LevelUpMenu,
         ))
-        .with_children(|parent| {
-            parent.spawn((
-                Text::new("Choose an Upgrade"),
-                TextFont {
-                    font_size: 40.0,
-                    ..Default::default()
-                },
+        .with_children(|root| {
+            // Card container
+            root.spawn((
                 Node {
-                    margin: UiRect::bottom(Val::VMin(3.0)),
+                    width: Val::VMin(80.0),
+                    flex_direction: FlexDirection::Column,
+                    align_items: AlignItems::Center,
+                    padding: UiRect::all(Val::VMin(4.0)),
+                    border_radius: BorderRadius::all(Val::VMin(4.0)),
                     ..Default::default()
                 },
-            ));
+                BackgroundColor(Color::srgba(0.1, 0.1, 0.15, 0.95)),
+            ))
+            .with_children(|card| {
+                card.spawn((
+                    Text::new("Choose an Upgrade"),
+                    TextFont {
+                        font_size: 24.0, // Base size, slightly reduced
+                        ..Default::default()
+                    },
+                    Node {
+                        margin: UiRect::bottom(Val::VMin(4.0)),
+                        ..Default::default()
+                    },
+                ));
 
-            let labels = ["Faster Fireballs", "Faster Orbs", "Heal +30 HP"];
+                let labels = ["Faster Fireballs", "Faster Orbs", "Heal +30 HP"];
 
-            for (i, label) in labels.iter().enumerate() {
-                parent
-                    .spawn((
+                for (i, label) in labels.iter().enumerate() {
+                    card.spawn((
                         Button,
                         Node {
-                            width: Val::VMin(45.0),
-                            height: Val::VMin(8.0),
-                            margin: UiRect::all(Val::VMin(1.5)),
+                            width: Val::Percent(100.0),
+                            height: Val::VMin(10.0),
+                            margin: UiRect::vertical(Val::VMin(1.0)),
                             justify_content: JustifyContent::Center,
                             align_items: AlignItems::Center,
+                            border_radius: BorderRadius::all(Val::VMin(2.0)),
                             ..Default::default()
                         },
                         BackgroundColor(Color::srgb(0.2, 0.2, 0.5)),
@@ -71,12 +87,13 @@ pub fn spawn_levelup_menu(mut commands: Commands) {
                         button.spawn((
                             Text::new(*label),
                             TextFont {
-                                font_size: 25.0,
+                                font_size: 18.0, // Base size, slightly reduced
                                 ..Default::default()
                             },
                         ));
                     });
-            }
+                }
+            });
         });
 }
 
