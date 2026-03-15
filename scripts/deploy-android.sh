@@ -69,7 +69,7 @@ echo -e "${GREEN}Press Ctrl+C to stop.${NC}"
 
 # Tail the logs using grep in a loop to handle disconnections/EOF
 while true; do
-    adb logcat -v time | grep --line-buffered -i "$PACKAGE_NAME"
+    adb logcat -v time | grep --line-buffered -i "yulaven"
     echo -e "${RED}Logcat disconnected. Reconnecting...${NC}"
     sleep 1
 done

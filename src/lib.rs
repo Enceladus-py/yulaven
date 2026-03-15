@@ -2,7 +2,14 @@
 #![allow(clippy::needless_pass_by_value)]
 
 #[cfg(target_os = "android")]
-use bevy::{prelude::bevy_main, window::AppLifecycle};
+use bevy::{
+    prelude::bevy_main,
+    render::{
+        RenderPlugin,
+        settings::{Backends, RenderCreation, WgpuSettings},
+    },
+    window::AppLifecycle,
+};
 
 #[cfg(any(target_os = "android", target_os = "ios"))]
 use bevy::winit::WinitSettings;
@@ -24,30 +31,26 @@ pub use core::state::GameState;
 fn main() {
     android_logger::init_once(
         android_logger::Config::default()
-            .with_max_level(log::LevelFilter::Info)
-            .with_tag("com.beratdalsuna.yulaven"),
+            .with_max_level(log::LevelFilter::Debug)
+            .with_tag("yulaven"),
     );
 
     std::panic::set_hook(Box::new(|panic_info| {
         log::error!("PANIC occurred: {}", panic_info);
     }));
 
+    log::info!("=== ANDROID MAIN STARTED ===");
     run_game();
 }
 
 pub fn run_game() {
+    log::info!("Initializing App...");
     let mut app = App::new();
 
     #[cfg(any(target_os = "android", target_os = "ios"))]
     app.insert_resource(WinitSettings::mobile());
 
-    #[cfg(target_os = "android")]
-    app.add_systems(
-        Update,
-        handle_lifetime.run_if(any_with_component::<AudioSink>),
-    );
-
-    app.add_plugins(
+    let mut default_plugins =
         DefaultPlugins
             .set(ImagePlugin::default_nearest())
             .set(WindowPlugin {
@@ -60,16 +63,34 @@ pub fn run_game() {
                     ..default()
                 }),
                 ..default()
+            });
+
+    #[cfg(target_os = "android")]
+    {
+        default_plugins = default_plugins.set(RenderPlugin {
+            render_creation: RenderCreation::Automatic(WgpuSettings {
+                backends: Some(Backends::all()),
+                ..default()
             }),
-    )
-    .add_plugins(core::CorePlugin)
-    .add_plugins(player::PlayerPlugin)
-    .add_plugins(enemy::EnemyPlugin)
-    .add_plugins(combat::CombatPlugin)
-    .add_plugins(map::MapPlugin)
-    .add_plugins(ui::UiPlugin)
-    .add_message::<player::components::LevelUpEvent>()
-    .run();
+            ..Default::default()
+        });
+
+        app.add_systems(
+            Update,
+            handle_lifetime.run_if(any_with_component::<AudioSink>),
+        );
+    }
+
+    app.add_plugins(default_plugins);
+
+    app.add_plugins(core::CorePlugin)
+        .add_plugins(player::PlayerPlugin)
+        .add_plugins(enemy::EnemyPlugin)
+        .add_plugins(combat::CombatPlugin)
+        .add_plugins(map::MapPlugin)
+        .add_plugins(ui::UiPlugin)
+        .add_message::<player::components::LevelUpEvent>()
+        .run();
 }
 
 // Pause audio when app goes into background and resume when it returns.
@@ -77,13 +98,15 @@ pub fn run_game() {
 #[cfg(target_os = "android")]
 fn handle_lifetime(
     mut app_lifecycle_reader: MessageReader<AppLifecycle>,
-    music_controller: Single<&AudioSink>,
+    music_controller: Query<&AudioSink>,
 ) {
     for app_lifecycle in app_lifecycle_reader.read() {
-        match app_lifecycle {
-            AppLifecycle::Idle | AppLifecycle::WillSuspend | AppLifecycle::WillResume => {}
-            AppLifecycle::Suspended => music_controller.pause(),
-            AppLifecycle::Running => music_controller.play(),
+        if let Ok(sink) = music_controller.single() {
+            match app_lifecycle {
+                AppLifecycle::Idle | AppLifecycle::WillSuspend | AppLifecycle::WillResume => {}
+                AppLifecycle::Suspended => sink.pause(),
+                AppLifecycle::Running => sink.play(),
+            }
         }
     }
 }

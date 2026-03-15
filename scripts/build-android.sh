@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Configuration
 TARGET_ARCH="arm64-v8a"
@@ -14,6 +15,8 @@ fi
 
 # Ensure output directory exists
 mkdir -p "$OUTPUT_DIR/$TARGET_ARCH"
+
+export CARGO_TARGET_DIR="target/android"
 
 echo "Building for $TARGET_ARCH..."
 

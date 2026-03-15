@@ -44,6 +44,15 @@ cd yulaven
 cargo run --release
 ```
 
+## 📱 Mobile Development
+
+For Android development, ensure you have the Android NDK installed. To keep your VS Code environment synced with the NDK paths for `rust-analyzer`, use the provided helper script:
+
+```bash
+# Update .vscode/settings.json with latest NDK paths
+./scripts/update-ndk-env.sh
+```
+
 ---
 
 *Yulaven is an ongoing exploration of mythic survival mechanics. Developed with passion and the power of Bevy.*
