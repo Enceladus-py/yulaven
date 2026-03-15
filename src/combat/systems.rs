@@ -1,6 +1,8 @@
 use bevy::{prelude::*, time::TimerMode};
 
-use super::components::{Fireball, FireballAnimation, Invincible, Knockback, Orb, Spell};
+use super::components::{
+    CombatAssets, Fireball, FireballAnimation, Invincible, Knockback, Orb, Spell,
+};
 use crate::{
     GameState,
     constant::{
@@ -15,22 +17,79 @@ use crate::{
 };
 
 const ORB_CHARGES_NEEDED: u8 = 5;
+const MAX_GEMS: usize = 300; // Limit gems to prevent Mali driver crashes on Android
+const ATTACK_RANGE: f32 = 400.0; // range for "on frame" optimization
+const MAX_PROJECTILES: usize = 40; // Cap projectiles to prevent Mali driver overload on rapid fire
+
+/// Pre-loads the projectile texture + atlas layout ONCE when entering Playing state.
+/// This prevents `TextureAtlasLayout::from_grid` + `texture_atlases.add` from being
+/// called on every shot, which caused `FlushedStagingBuffer::drop` crashes in the Mali driver.
+pub fn setup_combat_assets(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
+) {
+    let image = asset_server.load("HumansProjectiles.png");
+    let layout = TextureAtlasLayout::from_grid(UVec2::splat(16), 5, 5, None, None);
+    let layout_handle = texture_atlases.add(layout);
+    commands.insert_resource(CombatAssets {
+        projectile_image: image,
+        atlas_layout: layout_handle,
+    });
+}
 
 pub fn fire_fireballs(
     time: Res<Time>,
     mut commands: Commands,
     mut player_query: Query<(&Transform, &Sprite, &mut PlayerAnimation, &mut Player)>,
-    asset_server: Res<AssetServer>,
-    mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
+    combat_assets: Res<CombatAssets>,
     enemy_query: Query<&Transform, With<Enemy>>,
+    fireball_query: Query<Entity, With<Fireball>>,
+    orb_query: Query<Entity, With<Orb>>,
 ) {
-    if let Ok((player_transform, sprite, mut animation, mut player)) = player_query.single_mut() {
+    if let Ok((player_transform, _sprite, mut animation, mut player)) = player_query.single_mut() {
         player.fireball_timer.tick(time.delta());
 
         if !player.fireball_timer.just_finished() || player.orb_charges < ORB_CHARGES_NEEDED {
             return;
         }
+
+        let Some(enemy_transform) = nearest_enemy(player_transform.translation, &enemy_query)
+        else {
+            return;
+        };
+
+        if enemy_transform
+            .translation
+            .distance(player_transform.translation)
+            > ATTACK_RANGE
+        {
+            return;
+        }
+
         player.orb_charges = 0;
+
+        // 1. Convert Vec3 translations to Vec2
+        let player_pos = player_transform.translation.truncate(); // Converts Vec3 to Vec2
+        let enemy_pos = enemy_transform.translation.truncate();
+
+        // 2. Now the math works because both are Vec2
+        let direction: Vec2 = (enemy_pos - player_pos).normalize();
+
+        // 3. Calculate rotation using the Vec2 components
+        let angle = direction.y.atan2(direction.x);
+        let fireball_rotation = Quat::from_rotation_z(angle);
+
+        // 4. For the spawn position, you can convert back to Vec3
+        // keeping the player's Z-layer (usually 1.0 or similar)
+        let spawn_offset_dist = 30.0;
+        let spawn_pos_vec2 = player_pos + (direction * spawn_offset_dist);
+        let fireball_spawn_pos = spawn_pos_vec2.extend(player_transform.translation.z);
+
+        // Don't spawn more if too many projectiles already on screen
+        if fireball_query.iter().count() + orb_query.iter().count() >= MAX_PROJECTILES {
+            return;
+        }
 
         animation.first_frame = 36;
         animation.last_frame = 46;
@@ -39,43 +98,23 @@ pub fn fire_fireballs(
             .set_duration(std::time::Duration::from_secs_f32(0.4));
         animation.attack_timer.reset();
 
-        let Some(enemy_transform) = nearest_enemy(player_transform.translation, &enemy_query)
-        else {
-            return;
-        };
-
-        let texture_handle = asset_server.load("HumansProjectiles.png");
-        let texture_atlas = TextureAtlasLayout::from_grid(UVec2::splat(16), 5, 5, None, None);
-        let texture_atlas_handle = texture_atlases.add(texture_atlas);
-
-        let fb_offset_x = if sprite.flip_x { -20.0 } else { 20.0 };
-        let direction = (enemy_transform.translation - player_transform.translation).truncate();
-        let fireball_direction = direction.normalize_or_zero();
-        let fireball_rotation =
-            Quat::from_rotation_z(fireball_direction.y.atan2(fireball_direction.x));
-
         commands.spawn((
             Sprite {
-                image: texture_handle.clone(),
+                image: combat_assets.projectile_image.clone(),
                 texture_atlas: Some(TextureAtlas {
-                    layout: texture_atlas_handle,
+                    layout: combat_assets.atlas_layout.clone(),
                     index: 5,
                 }),
                 ..Default::default()
             },
             Transform {
-                translation: player_transform.translation
-                    + Vec3 {
-                        x: fb_offset_x,
-                        y: 0.0,
-                        z: 0.0,
-                    },
-                rotation: fireball_rotation,
+                translation: fireball_spawn_pos, // Applied offset
+                rotation: fireball_rotation,     // Applied rotation
                 scale: Vec3::splat(4.0),
             },
             Fireball {
                 progress: 0.0,
-                direction: fireball_direction,
+                direction, // Pass the normalized vector
             },
             FireballAnimation {
                 timer: Timer::from_seconds(0.1, TimerMode::Repeating),
@@ -87,6 +126,7 @@ pub fn fire_fireballs(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn fire_orbs(
     time: Res<Time>,
     mut commands: Commands,
@@ -94,10 +134,25 @@ pub fn fire_orbs(
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
     enemy_query: Query<&Transform, With<Enemy>>,
+    fireball_query: Query<Entity, With<Fireball>>,
+    orb_query: Query<Entity, With<Orb>>,
 ) {
     if let Ok((player_transform, sprite, mut animation, mut player)) = player_query.single_mut() {
         player.orb_timer.tick(time.delta());
         if !player.orb_timer.just_finished() {
+            return;
+        }
+
+        let Some(enemy_transform) = nearest_enemy(player_transform.translation, &enemy_query)
+        else {
+            return;
+        };
+
+        if enemy_transform
+            .translation
+            .distance(player_transform.translation)
+            > ATTACK_RANGE
+        {
             return;
         }
 
@@ -109,6 +164,11 @@ pub fn fire_orbs(
         animation.attack_timer.reset();
 
         player.orb_charges = player.orb_charges.saturating_add(1);
+
+        // Don't spawn more if too many projectiles already on screen
+        if fireball_query.iter().count() + orb_query.iter().count() >= MAX_PROJECTILES {
+            return;
+        }
 
         let texture_handle = asset_server.load("HumansProjectiles.png");
         let texture_atlas = TextureAtlasLayout::from_grid(UVec2::splat(16), 5, 5, None, None);
@@ -339,8 +399,11 @@ pub fn handle_death(
         Option<&Enemy>,
         Option<&Player>,
     )>,
+    gem_query: Query<Entity, With<ExperienceGem>>,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
+    let gem_count = gem_query.iter().count();
+
     for (entity, health, opt_transform, opt_enemy, opt_player) in &query {
         if health.0 <= 0.0 {
             if opt_player.is_some() {
@@ -356,15 +419,19 @@ pub fn handle_death(
             let Some(transform) = opt_transform else {
                 continue;
             };
-            commands.spawn((
-                Sprite {
-                    color: Color::srgb(0.2, 0.8, 0.2),
-                    custom_size: Some(Vec2::new(15.0, 15.0)),
-                    ..Default::default()
-                },
-                Transform::from_translation(transform.translation),
-                ExperienceGem { amount: 10.0 },
-            ));
+
+            // Limit gem count to prevent GPU driver overcrowding
+            if gem_count < MAX_GEMS {
+                commands.spawn((
+                    Sprite {
+                        color: Color::srgb(0.2, 0.8, 0.2),
+                        custom_size: Some(Vec2::new(15.0, 15.0)),
+                        ..Default::default()
+                    },
+                    Transform::from_translation(transform.translation),
+                    ExperienceGem { amount: 10.0 },
+                ));
+            }
         }
     }
 }

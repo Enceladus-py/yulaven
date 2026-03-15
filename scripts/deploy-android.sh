@@ -1,16 +1,32 @@
 #!/bin/bash
 
-# Configuration
-APK_PATH="android/app/build/outputs/apk/debug/app-debug.apk"
+# Default Configuration
 PACKAGE_NAME="com.beratdalsuna.yulaven"
 ACTIVITY_NAME="com.beratdalsuna.yulaven.MainActivity"
+
+RELEASE=false
+
+# Parse arguments
+for arg in "$@"; do
+    if [ "$arg" == "--release" ]; then
+        RELEASE=true
+    fi
+done
 
 # Colors for output
 GREEN='\033[0;32m'
 RED='\033[0;31m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "Starting deployment to Android device..."
+# Set APK path based on build type
+if [ "$RELEASE" = true ]; then
+    APK_PATH="android/app/build/outputs/apk/release/app-release.apk"
+    echo -e "${BLUE}Starting deployment for RELEASE build...${NC}"
+else
+    APK_PATH="android/app/build/outputs/apk/debug/app-debug.apk"
+    echo -e "${BLUE}Starting deployment for DEBUG build...${NC}"
+fi
 
 # Check if APK exists
 if [ ! -f "$APK_PATH" ]; then
@@ -26,8 +42,6 @@ if [ "$DEVICE_COUNT" -eq 0 ]; then
     echo -e "${RED}Error: No Android devices/emulators connected via ADB.${NC}"
     exit 1
 fi
-
-echo -e "${GREEN}Device detected. Installing APK...${NC}"
 
 echo -e "${GREEN}Device detected. Pushing APK to device (showing progress)...${NC}"
 
@@ -64,12 +78,33 @@ else
     exit 1
 fi
 
+# Setup cleanup for background logging
+cleanup() {
+    echo -e "\n${RED}Stopping logging and exiting...${NC}"
+    kill $(jobs -p) 2>/dev/null
+    exit
+}
+trap cleanup SIGINT SIGTERM
+
+echo -e "${GREEN}Starting background logging (max 5000 lines) to android_device_logs.txt...${NC}"
+
+(
+    # Create or clear the file
+    > android_device_logs.txt
+
+    while true; do
+        # Dump the current buffer, take the last 5000, and overwrite the file
+        adb logcat -d -v time | tail -n 5000 > android_device_logs.txt
+        sleep 2
+    done
+) &
+
 echo -e "${GREEN}Starting logcat tailing for $PACKAGE_NAME...${NC}"
 echo -e "${GREEN}Press Ctrl+C to stop.${NC}"
 
 # Tail the logs using grep in a loop to handle disconnections/EOF
 while true; do
-    adb logcat -v time | grep --line-buffered -i "yulaven"
+    adb logcat -v time | grep --line-buffered -i "RustStdoutStderr"
     echo -e "${RED}Logcat disconnected. Reconnecting...${NC}"
     sleep 1
 done

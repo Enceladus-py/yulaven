@@ -34,3 +34,5 @@ android/local.properties
 *.aar
 *.jks
 captures/
+
+android_device_logs.txt

@@ -8,6 +8,10 @@ pub struct CombatPlugin;
 impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
+            OnEnter(crate::GameState::Playing),
+            systems::setup_combat_assets,
+        )
+        .add_systems(
             Update,
             (
                 systems::fire_fireballs,

@@ -1,9 +1,17 @@
 use bevy::{
     math::Vec2,
-    prelude::{Component, Transform},
+    prelude::{Component, Handle, Image, Resource, TextureAtlasLayout, Transform},
     sprite::Sprite,
     time::Timer,
 };
+
+/// Pre-loaded projectile assets — loaded ONCE to avoid per-shot GPU buffer churn
+/// that causes `FlushedStagingBuffer::drop` crashes in the Mali Vulkan driver.
+#[derive(Resource)]
+pub struct CombatAssets {
+    pub projectile_image: Handle<Image>,
+    pub atlas_layout: Handle<TextureAtlasLayout>,
+}
 
 #[derive(Component, Default)]
 #[require(Sprite, Transform)]

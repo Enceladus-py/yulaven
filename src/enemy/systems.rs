@@ -6,6 +6,8 @@ use crate::core::components::Health;
 use crate::player::components::Player;
 
 const AGGRO_RADIUS: f32 = 600.0;
+const MAX_ENEMIES: usize = 150;
+const DESPAWN_RADIUS: f32 = 1200.0;
 
 #[derive(Resource)]
 pub struct EnemySpawnTimer(pub Timer);
@@ -31,6 +33,7 @@ pub fn spawn_enemies(
     mut spawn_timer: ResMut<EnemySpawnTimer>,
     mut game_timer: ResMut<GameTimer>,
     player_query: Query<&Transform, With<Player>>,
+    enemy_query: Query<Entity, With<Enemy>>,
 ) {
     game_timer.0.tick(time.delta());
     if game_timer.0.just_finished() {
@@ -47,9 +50,15 @@ pub fn spawn_enemies(
     if !spawn_timer.0.just_finished() {
         return;
     }
-    let Ok(player_transform) = player_query.single() else {
+
+    let enemy_count = enemy_query.iter().count();
+    log::debug!("enemy count: {enemy_count}");
+
+    if enemy_count >= MAX_ENEMIES {
         return;
-    };
+    }
+
+    let player_transform = player_query.single().unwrap();
     let mut rng = rand::thread_rng();
     let angle: f32 = rng.gen_range(0.0..std::f32::consts::TAU);
     let distance: f32 = 800.0; // Spawn outside view
@@ -70,18 +79,17 @@ pub fn spawn_enemies(
 }
 
 pub fn move_enemies(
-    mut enemy_query: Query<(&mut Transform, &mut Enemy)>,
+    mut enemy_query: Query<(Entity, &mut Transform, &mut Enemy)>,
     player_query: Query<&Transform, (With<Player>, Without<Enemy>)>,
     structure_query: Query<
         (&GlobalTransform, &crate::map::components::Collider),
         With<crate::map::components::Structure>,
     >,
     time: Res<Time>,
+    mut commands: Commands,
 ) {
-    let Ok(player_transform) = player_query.single() else {
-        return;
-    };
-    for (mut enemy_transform, mut enemy) in &mut enemy_query {
+    let player_transform = player_query.single().unwrap();
+    for (entity, mut enemy_transform, mut enemy) in &mut enemy_query {
         let direction = (player_transform.translation - enemy_transform.translation).truncate();
         let distance = direction.length();
 
@@ -114,6 +122,11 @@ pub fn move_enemies(
                 }
             }
             enemy_transform.translation = new_translation;
+        }
+
+        // Despawn if too far
+        if distance > DESPAWN_RADIUS {
+            commands.entity(entity).despawn();
         }
     }
 }
