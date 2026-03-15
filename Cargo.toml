@@ -47,3 +47,4 @@ lto = true
 
 [patch.crates-io]
 wgpu-types = { git = "https://github.com/NiklasEi/wgpu", branch = "patch-bevy-flickering-android" }
+android-activity = { git = "https://github.com/damus-io/android-activity", rev = "a8948332c7c551303d32eb26a59d0abd676e47a5" }

@@ -49,6 +49,7 @@ pub fn run_game() {
         .set(WindowPlugin {
             primary_window: Some(Window {
                 title: "Yulaven".to_string(),
+                focused: true,
                 #[cfg(any(target_os = "android", target_os = "ios"))]
                 resizable: false,
                 #[cfg(any(target_os = "android", target_os = "ios"))]
