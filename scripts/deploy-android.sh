@@ -144,9 +144,10 @@ trap cleanup SIGINT SIGTERM
 echo -e "${GREEN}Starting background logging (max 5000 lines)...${NC}"
 
 (
-    # Create or clear the file with device-specific name
+    # Create or clear the file with device-specific name in the logs/ directory
+    mkdir -p logs
     SAFE_SERIAL=${DEVICE_SERIAL//:/_}
-    LOG_FILE="android_device_logs_${SAFE_SERIAL}.txt"
+    LOG_FILE="logs/android_device_logs_${SAFE_SERIAL}.txt"
     > "$LOG_FILE"
 
     while true; do
