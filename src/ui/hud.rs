@@ -4,6 +4,8 @@ use crate::player::character::ActiveAbility;
 use crate::player::character::SelectedCharacter;
 use crate::player::components::{Player, PlayerStats};
 use bevy::prelude::*;
+use bevy::render::render_resource::AsBindGroup;
+use bevy::shader::ShaderRef;
 
 #[derive(Component)]
 pub struct HealthFill;
@@ -17,12 +19,27 @@ pub struct LevelText;
 #[derive(Component)]
 pub struct ActiveAbilityFill;
 
+#[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
+pub struct CircularCooldownMaterial {
+    #[uniform(0)]
+    pub color: LinearRgba,
+    #[uniform(0)]
+    pub progress: f32,
+}
+
+impl UiMaterial for CircularCooldownMaterial {
+    fn fragment_shader() -> ShaderRef {
+        "shaders/circular_cooldown.wgsl".into()
+    }
+}
+
 /// Modern, sleek mobile HUD using deeply rounded shapes and premium colors.
 #[allow(clippy::too_many_lines)]
 pub fn build_mobile_hud(
     mut commands: Commands,
     character: Res<SelectedCharacter>,
     asset_server: Res<AssetServer>,
+    mut materials: ResMut<Assets<CircularCooldownMaterial>>,
 ) {
     // ── Top Left: Stats ────────────────────────────────────────────────────────
     commands
@@ -106,6 +123,10 @@ pub fn build_mobile_hud(
 
     // ── Bottom Right: Touch Abilities ─────────────────────────────────────────
     let char_color = character.accent_color();
+    let cooldown_mat = materials.add(CircularCooldownMaterial {
+        color: Color::srgba(0.0, 0.0, 0.0, 0.7).into(),
+        progress: 1.0,
+    });
 
     commands
         .spawn(Node {
@@ -140,14 +161,13 @@ pub fn build_mobile_hud(
             ))
             .with_children(|btn| {
                 btn.spawn((
+                    MaterialNode(cooldown_mat),
                     Node {
                         position_type: PositionType::Absolute,
-                        bottom: Val::Px(0.0),
                         width: Val::Percent(100.0),
                         height: Val::Percent(100.0),
                         ..Default::default()
                     },
-                    BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.6)),
                     ActiveAbilityFill,
                 ));
             });
@@ -174,14 +194,15 @@ pub fn update_mobile_hud(
         ),
     >,
     mut level_text_query: Query<&mut Text, With<LevelText>>,
-    mut active_fill_query: Query<
-        &mut Node,
+    active_fill_query: Query<
+        &MaterialNode<CircularCooldownMaterial>,
         (
             With<ActiveAbilityFill>,
             Without<HealthFill>,
             Without<XpFill>,
         ),
     >,
+    mut materials: ResMut<Assets<CircularCooldownMaterial>>,
 ) {
     let Ok((health, stats, active_ability, _player)) = player_query.single() else {
         return;
@@ -200,9 +221,11 @@ pub fn update_mobile_hud(
         **text = format!("Lv {}", stats.level);
     }
 
-    // Cooldown overlay: height 100% when charging (0% progress), 0% when ready (100% progress)
-    let active_pct = active_ability.cooldown.fraction();
-    if let Ok(mut node) = active_fill_query.single_mut() {
-        node.height = Val::Percent((1.0 - active_pct) * 100.0);
+    // Cooldown overlay: progress is 0.0 (ready) or up to 1.0 (just started)
+    // The shader masks based on this value.
+    if let Ok(handle) = active_fill_query.single()
+        && let Some(mat) = materials.get_mut(handle)
+    {
+        mat.progress = 1.0 - active_ability.cooldown.fraction();
     }
 }

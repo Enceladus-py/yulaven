@@ -21,6 +21,7 @@ impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<joystick::JoystickInput>()
             .init_resource::<joystick::JoystickFinger>()
+            .add_plugins(UiMaterialPlugin::<hud::CircularCooldownMaterial>::default())
             // ── Main Menu ────────────────────────────────────────────────────
             .add_systems(
                 OnEnter(crate::GameState::MainMenu),
