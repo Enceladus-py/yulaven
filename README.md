@@ -25,11 +25,15 @@ In the era of the *Yulaven* (the soul-haven), the boundaries between the physica
 
 ## 🛠️ Project Architecture
 
-Yulaven is built on a modular, ECS-driven architecture (Entity Component System) for maximum performance and scalability:
+Yulaven follows a **domain-driven, plugin-based architecture** built with the **Bevy Engine**'s ECS. The codebase is organized into modular plugins for scalability and clear separation of concerns:
 
--   **`src/system/spawn.rs`**: The heart of the arcane logic, handling spell targeting and charge mechanics.
--   **`src/system/movement.rs`**: High-performance physics and steering logic for both projectiles and entities.
--   **`src/system/ui.rs`**: A reactive HUD system reflecting real-time game state.
+-   **`src/core/`**: Foundations of the game, including `GameState`, camera setup, and global resource initialization.
+-   **`src/player/`**: Character-specific logic, movement controllers, and ability systems (e.g., active skills).
+-   **`src/enemy/`**: AI behaviors, spawning algorithms, and mob-specific components.
+-   **`src/combat/`**: The "meat" of the mechanics—handling projectiles, damage application, and effects like the *Nova* blast.
+-   **`src/map/`**: Terrain generation, environmental boundaries, and world-building logic.
+-   **`src/ui/`**: Reactive HUD elements, character selection menus, and map overlays.
+-   **`src/constant.rs`**: Centralized tuning parameters (speed, tilt, spawn rates).
 
 ## 🚀 Getting Started
 
@@ -46,12 +50,13 @@ cargo run --release
 
 ## 📱 Mobile Development
 
-For Android development, ensure you have the Android NDK installed. To keep your VS Code environment synced with the NDK paths for `rust-analyzer`, use the provided helper script:
+For Android development, several helper scripts are provided in the `scripts/` directory:
 
-```bash
-# Update .vscode/settings.json with latest NDK paths
-./scripts/update-ndk-env.sh
-```
+-   **`./scripts/build-android.sh`**: Compiles the native Rust code for Android targets.
+-   **`./scripts/deploy-android.sh`**: Deploys the APK and tails logs (`adb logcat`).
+-   **`./scripts/emulator.sh`**: Launches a pre-configured Android emulator.
+-   **`./scripts/update-ndk-env.sh`**: Syncs VS Code settings with the local Android NDK path for `rust-analyzer`.
+
 
 ---
 
