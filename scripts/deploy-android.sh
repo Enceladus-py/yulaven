@@ -5,12 +5,16 @@ PACKAGE_NAME="com.beratdalsuna.yulaven"
 ACTIVITY_NAME="com.beratdalsuna.yulaven.MainActivity"
 
 RELEASE=false
+DEVICE_SERIAL=""
 
 # Parse arguments
-for arg in "$@"; do
-    if [ "$arg" == "--release" ]; then
-        RELEASE=true
-    fi
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --release) RELEASE=true ;;
+        --device) DEVICE_SERIAL="$2"; shift ;;
+        *) echo "Unknown parameter: $1"; exit 1 ;;
+    esac
+    shift
 done
 
 # Colors for output
@@ -35,31 +39,82 @@ if [ ! -f "$APK_PATH" ]; then
     exit 1
 fi
 
-# Check for connected devices
-DEVICE_COUNT=$(adb devices | grep -v "List of devices connected" | grep -v "^$" | wc -l)
+# 1. Device Selection Logic
+if [ -z "$DEVICE_SERIAL" ]; then
+    echo -e "${BLUE}Detecting devices...${NC}"
+    
+    DEVICES=()
+    while read -r line; do
+        [ -z "$line" ] && continue
+        SERIAL=$(echo "$line" | awk '{print $1}')
+        [ "$SERIAL" == "List" ] && continue
+        
+        # Deduplicate: Skip mDNS if optional
+        [[ "$SERIAL" == *"_adb-tls-connect._tcp"* ]] && continue
+        
+        if [[ "$line" =~ model:([^[:space:]]+) ]]; then
+            MODEL="${BASH_REMATCH[1]}"
+        else
+            MODEL="Device"
+        fi
+        DEVICES+=("$MODEL ($SERIAL)")
+    done < <(adb devices -l)
+    
+    COUNT=${#DEVICES[@]}
+    
+    if [ "$COUNT" -eq 0 ]; then
+        echo -e "${RED}Error: No Android devices connected via ADB.${NC}"
+        exit 1
+    elif [ "$COUNT" -eq 1 ]; then
+        # Auto-select single device
+        STR="${DEVICES[0]}"
+        regex='\(([^)]+)\)$'
+        if [[ "$STR" =~ $regex ]]; then
+            DEVICE_SERIAL="${BASH_REMATCH[1]}"
+        fi
+        echo -e "${GREEN}Auto-selected device: $DEVICE_SERIAL${NC}"
+    else
+        # Multi-device selection
+        echo -e "${BLUE}Multiple devices detected. Please select one:${NC}"
+        select DEV in "${DEVICES[@]}"; do
+            if [ -n "$DEV" ]; then
+                regex='\(([^)]+)\)$'
+                if [[ "$DEV" =~ $regex ]]; then
+                    DEVICE_SERIAL="${BASH_REMATCH[1]}"
+                fi
+                break
+            else
+                echo "Invalid selection."
+            fi
+        done
+    fi
+fi
 
-if [ "$DEVICE_COUNT" -eq 0 ]; then
-    echo -e "${RED}Error: No Android devices/emulators connected via ADB.${NC}"
+if [ -z "$DEVICE_SERIAL" ]; then
+    echo -e "${RED}Error: Device serial could not be determined.${NC}"
     exit 1
 fi
 
-echo -e "${GREEN}Device detected. Pushing APK to device (showing progress)...${NC}"
+# 2. Targeted ADB Commands
+ADB="adb -s $DEVICE_SERIAL"
 
-# Push the APK to temp location to show progress bar
-if adb push "$APK_PATH" /data/local/tmp/app-deploy.apk; then
+echo -e "${GREEN}Pushing APK to $DEVICE_SERIAL...${NC}"
+
+# Push the APK to temp location
+if $ADB push "$APK_PATH" /data/local/tmp/app-deploy.apk; then
     echo -e "${GREEN}Push successful. Installing...${NC}"
     
     # Install the APK from the temp location
-    if adb shell pm install -r -t /data/local/tmp/app-deploy.apk; then
+    if $ADB shell pm install -r -t /data/local/tmp/app-deploy.apk; then
         echo -e "${GREEN}Installation successful!${NC}"
     else
         echo -e "${RED}Installation failed.${NC}"
-        adb shell rm /data/local/tmp/app-deploy.apk
+        $ADB shell rm /data/local/tmp/app-deploy.apk
         exit 1
     fi
     
     # Cleanup
-    adb shell rm /data/local/tmp/app-deploy.apk
+    $ADB shell rm /data/local/tmp/app-deploy.apk
 else
     echo -e "${RED}Failed to push APK to device.${NC}"
     exit 1
@@ -68,10 +123,10 @@ fi
 echo -e "${GREEN}Launching application...${NC}"
 
 # Clear logs before starting
-adb logcat -c
+$ADB logcat -c
 
 # Launch the activity
-if adb shell am start -n "$PACKAGE_NAME/$ACTIVITY_NAME"; then
+if $ADB shell am start -n "$PACKAGE_NAME/$ACTIVITY_NAME"; then
     echo -e "${GREEN}Application launched successfully!${NC}"
 else
     echo -e "${RED}Failed to launch application.${NC}"
@@ -86,15 +141,16 @@ cleanup() {
 }
 trap cleanup SIGINT SIGTERM
 
-echo -e "${GREEN}Starting background logging (max 5000 lines) to android_device_logs.txt...${NC}"
+echo -e "${GREEN}Starting background logging (max 5000 lines)...${NC}"
 
 (
-    # Create or clear the file
-    > android_device_logs.txt
+    # Create or clear the file with device-specific name
+    SAFE_SERIAL=${DEVICE_SERIAL//:/_}
+    LOG_FILE="android_device_logs_${SAFE_SERIAL}.txt"
+    > "$LOG_FILE"
 
     while true; do
-        # Dump the current buffer, take the last 5000, and overwrite the file
-        adb logcat -d -v time | tail -n 5000 > android_device_logs.txt
+        $ADB logcat -d -v time | tail -n 5000 > "$LOG_FILE"
         sleep 2
     done
 ) &
@@ -104,7 +160,7 @@ echo -e "${GREEN}Press Ctrl+C to stop.${NC}"
 
 # Tail the logs using grep in a loop to handle disconnections/EOF
 while true; do
-    adb logcat -v time | grep --line-buffered -i "RustStdoutStderr"
+    $ADB logcat -v time | grep --line-buffered -i "RustStdoutStderr"
     echo -e "${RED}Logcat disconnected. Reconnecting...${NC}"
     sleep 1
 done
