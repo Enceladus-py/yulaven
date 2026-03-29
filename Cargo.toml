@@ -46,5 +46,9 @@ lto = true
 # panic = "abort"
 
 [patch.crates-io]
-wgpu-types = { git = "https://github.com/NiklasEi/wgpu", branch = "patch-bevy-flickering-android" }
+wgpu = { git = "https://github.com/analytik/wgpu", rev = "07af396d122c5a050d03930147a23cd50ea10b1c" }
+wgpu-hal = { git = "https://github.com/analytik/wgpu", rev = "07af396d122c5a050d03930147a23cd50ea10b1c" }
+wgpu-core = { git = "https://github.com/analytik/wgpu", rev = "07af396d122c5a050d03930147a23cd50ea10b1c" }
+wgpu-types = { git = "https://github.com/analytik/wgpu", rev = "07af396d122c5a050d03930147a23cd50ea10b1c" }
+naga = { git = "https://github.com/analytik/wgpu", rev = "07af396d122c5a050d03930147a23cd50ea10b1c" }
 android-activity = { git = "https://github.com/damus-io/android-activity", rev = "a8948332c7c551303d32eb26a59d0abd676e47a5" }

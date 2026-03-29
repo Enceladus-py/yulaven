@@ -1871,6 +1871,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "codespan-reporting"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af491d569909a7e4dee0ad7db7f5341fef5c614d5b8ec8cf765732aba3cff681"
+dependencies = [
+ "serde",
+ "termcolor",
+ "unicode-width",
+]
+
+[[package]]
 name = "combine"
 version = "4.6.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3163,16 +3174,15 @@ dependencies = [
 
 [[package]]
 name = "naga"
-version = "27.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "066cf25f0e8b11ee0df221219010f213ad429855f57c494f995590c861a9a7d8"
+version = "27.0.4"
+source = "git+https://github.com/analytik/wgpu?rev=07af396d122c5a050d03930147a23cd50ea10b1c#07af396d122c5a050d03930147a23cd50ea10b1c"
 dependencies = [
  "arrayvec",
  "bit-set",
  "bitflags 2.11.0",
  "cfg-if",
  "cfg_aliases",
- "codespan-reporting",
+ "codespan-reporting 0.13.1",
  "half",
  "hashbrown 0.16.1",
  "hexf-parse",
@@ -3194,7 +3204,7 @@ version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "310c347db1b30e69581f3b84dc9a5c311ed583f67851b39b77953cb7a066c97f"
 dependencies = [
- "codespan-reporting",
+ "codespan-reporting 0.12.0",
  "data-encoding",
  "indexmap",
  "naga",
@@ -5048,9 +5058,8 @@ dependencies = [
 
 [[package]]
 name = "wgpu"
-version = "27.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfe68bac7cde125de7a731c3400723cadaaf1703795ad3f4805f187459cd7a77"
+version = "27.0.4"
+source = "git+https://github.com/analytik/wgpu?rev=07af396d122c5a050d03930147a23cd50ea10b1c#07af396d122c5a050d03930147a23cd50ea10b1c"
 dependencies = [
  "arrayvec",
  "bitflags 2.11.0",
@@ -5075,9 +5084,8 @@ dependencies = [
 
 [[package]]
 name = "wgpu-core"
-version = "27.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27a75de515543b1897b26119f93731b385a19aea165a1ec5f0e3acecc229cae7"
+version = "27.0.4"
+source = "git+https://github.com/analytik/wgpu?rev=07af396d122c5a050d03930147a23cd50ea10b1c#07af396d122c5a050d03930147a23cd50ea10b1c"
 dependencies = [
  "arrayvec",
  "bit-set",
@@ -5107,27 +5115,24 @@ dependencies = [
 
 [[package]]
 name = "wgpu-core-deps-apple"
-version = "27.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0772ae958e9be0c729561d5e3fd9a19679bcdfb945b8b1a1969d9bfe8056d233"
+version = "27.0.4"
+source = "git+https://github.com/analytik/wgpu?rev=07af396d122c5a050d03930147a23cd50ea10b1c#07af396d122c5a050d03930147a23cd50ea10b1c"
 dependencies = [
  "wgpu-hal",
 ]
 
 [[package]]
 name = "wgpu-core-deps-wasm"
-version = "27.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b1027dcf3b027a877e44819df7ceb0e2e98578830f8cd34cd6c3c7c2a7a50b7"
+version = "27.0.4"
+source = "git+https://github.com/analytik/wgpu?rev=07af396d122c5a050d03930147a23cd50ea10b1c#07af396d122c5a050d03930147a23cd50ea10b1c"
 dependencies = [
  "wgpu-hal",
 ]
 
 [[package]]
 name = "wgpu-core-deps-windows-linux-android"
-version = "27.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71197027d61a71748e4120f05a9242b2ad142e3c01f8c1b47707945a879a03c3"
+version = "27.0.4"
+source = "git+https://github.com/analytik/wgpu?rev=07af396d122c5a050d03930147a23cd50ea10b1c#07af396d122c5a050d03930147a23cd50ea10b1c"
 dependencies = [
  "wgpu-hal",
 ]
@@ -5135,8 +5140,7 @@ dependencies = [
 [[package]]
 name = "wgpu-hal"
 version = "27.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5b21cb61c57ee198bc4aff71aeadff4cbb80b927beb912506af9c780d64313ce"
+source = "git+https://github.com/analytik/wgpu?rev=07af396d122c5a050d03930147a23cd50ea10b1c#07af396d122c5a050d03930147a23cd50ea10b1c"
 dependencies = [
  "android_system_properties",
  "arrayvec",
@@ -5183,8 +5187,8 @@ dependencies = [
 
 [[package]]
 name = "wgpu-types"
-version = "27.0.1"
-source = "git+https://github.com/NiklasEi/wgpu?branch=patch-bevy-flickering-android#45e8e45298b55ef004e6ad9f87495d34c90f44f0"
+version = "27.0.4"
+source = "git+https://github.com/analytik/wgpu?rev=07af396d122c5a050d03930147a23cd50ea10b1c#07af396d122c5a050d03930147a23cd50ea10b1c"
 dependencies = [
  "bitflags 2.11.0",
  "bytemuck",
