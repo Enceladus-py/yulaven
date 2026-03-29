@@ -21,17 +21,23 @@ impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<joystick::JoystickInput>()
             .init_resource::<joystick::JoystickFinger>()
+            .init_resource::<main_menu::MenuExitTime>()
             .add_plugins(UiMaterialPlugin::<hud::CircularCooldownMaterial>::default())
             // ── Main Menu ────────────────────────────────────────────────────
             .add_systems(
                 OnEnter(crate::GameState::MainMenu),
-                main_menu::spawn_main_menu,
+                (
+                    main_menu::spawn_main_menu,
+                    |mut exit_time: ResMut<main_menu::MenuExitTime>| exit_time.0 = None,
+                ),
             )
             .add_systems(
                 Update,
                 (
                     main_menu::handle_main_menu,
                     main_menu::highlight_play_button,
+                    main_menu::animate_burning_logo,
+                    main_menu::check_menu_exit,
                 )
                     .run_if(in_state(crate::GameState::MainMenu)),
             )

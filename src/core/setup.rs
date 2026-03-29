@@ -78,17 +78,22 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     );
 
     commands.insert_resource(StructureAssets {
-        grass_terrain: grass_terrain.clone(),
+        grass_terrain,
         dirt_terrain,
         stone_terrain,
         sand_terrain,
         dark_grass_terrain,
-        pine_tree: pine_tree.clone(),
+        pine_tree,
         stone_rocks,
         ruined_pillars,
     });
+}
 
-    let terrain_handle = grass_terrain;
+#[allow(clippy::cast_precision_loss)]
+pub fn spawn_terrain(mut commands: Commands, assets: Res<StructureAssets>) {
+    let terrain_handle = &assets.grass_terrain;
+    let pine_tree = &assets.pine_tree;
+
     for x in -1..=1 {
         for y in -1..=1 {
             commands
