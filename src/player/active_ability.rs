@@ -18,6 +18,8 @@ pub struct ActiveAbilityButton;
 pub fn trigger_active_ability(
     time: Res<Time>,
     keyboard: Res<ButtonInput<KeyCode>>,
+    touches: Res<Touches>,
+    mut last_tap_time: Local<f32>,
     joystick: Res<JoystickInput>,
     interaction_query: Query<&Interaction, (Changed<Interaction>, With<ActiveAbilityButton>)>,
     mut player_query: Query<(
@@ -47,6 +49,19 @@ pub fn trigger_active_ability(
     }
 
     let mut pressed = keyboard.just_pressed(KeyCode::KeyQ);
+
+    // Support "double tap" (tapping the screen twice quickly within 300ms)
+    if touches.any_just_pressed() {
+        let now = time.elapsed_secs();
+        if now - *last_tap_time < 0.3 {
+            pressed = true;
+            // Reset to 0 to prevent a triple tap from triggering twice
+            *last_tap_time = 0.0;
+        } else {
+            *last_tap_time = now;
+        }
+    }
+
     for interaction in &interaction_query {
         if *interaction == Interaction::Pressed {
             pressed = true;
