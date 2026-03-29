@@ -8,14 +8,9 @@ use crate::core::components::Health;
 use crate::enemy::components::Enemy;
 use crate::ui::JoystickInput;
 
-/// HUD component for the active ability cooldown bar.
+/// Marker for the active ability UI button.
 #[derive(Component)]
-pub struct ActiveAbilityCooldownFill;
-
-#[derive(Component)]
-pub struct ActiveAbilityLabel;
-
-// ── Trigger system ────────────────────────────────────────────────────────────
+pub struct ActiveAbilityButton;
 
 /// Reads Space bar (PC) / on-screen button inputs. Dispatches the correct
 /// active ability based on the `ActiveAbility.kind` on the player.
@@ -24,6 +19,7 @@ pub fn trigger_active_ability(
     time: Res<Time>,
     keyboard: Res<ButtonInput<KeyCode>>,
     joystick: Res<JoystickInput>,
+    interaction_query: Query<&Interaction, (Changed<Interaction>, With<ActiveAbilityButton>)>,
     mut player_query: Query<(
         Entity,
         &mut Transform,
@@ -38,14 +34,8 @@ pub fn trigger_active_ability(
     mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
     mut ev_nova: MessageWriter<NovaEvent>,
 ) {
-    let Ok((
-        player_entity,
-        mut player_transform,
-        mut ability,
-        player,
-        stats,
-        mut player_health,
-    )) = player_query.single_mut()
+    let Ok((player_entity, player_transform, mut ability, player, stats, mut player_health)) =
+        player_query.single_mut()
     else {
         return;
     };
@@ -56,7 +46,13 @@ pub fn trigger_active_ability(
         return;
     }
 
-    let pressed = keyboard.just_pressed(KeyCode::KeyQ);
+    let mut pressed = keyboard.just_pressed(KeyCode::KeyQ);
+    for interaction in &interaction_query {
+        if *interaction == Interaction::Pressed {
+            pressed = true;
+        }
+    }
+
     if !pressed {
         return;
     }
@@ -72,14 +68,42 @@ pub fn trigger_active_ability(
             } else {
                 player.facing_direction
             };
-            player_transform.translation += dir.extend(0.0) * 320.0;
+
+            let dist = 320.0;
+            let target = player_transform.translation.truncate() + dir * dist;
+            let mid_point = (player_transform.translation.truncate() + target) / 2.0;
+            let angle = dir.y.atan2(dir.x);
+
+            // Spawn the dash trail line
+            commands.spawn((
+                Sprite {
+                    color: Color::srgba(0.2, 0.7, 1.0, 0.85),
+                    custom_size: Some(Vec2::new(dist, 24.0)),
+                    ..Default::default()
+                },
+                Transform {
+                    translation: mid_point.extend(1.0), // render behind or above? let's do 1.0
+                    rotation: Quat::from_rotation_z(angle),
+                    ..Default::default()
+                },
+                crate::player::components::DashTrail {
+                    lifetime: Timer::from_seconds(0.3, TimerMode::Once),
+                },
+            ));
+
+            commands
+                .entity(player_entity)
+                .insert(crate::player::components::Teleporting {
+                    timer: Timer::from_seconds(0.15, TimerMode::Once),
+                    original_translation: player_transform.translation.truncate(),
+                    target_translation: target,
+                });
         }
 
         SelectedCharacter::Archer => {
             // Arrow Rain — fire 8 orbs evenly spaced around the player
             let texture_handle = asset_server.load("HumansProjectiles.png");
-            let layout =
-                TextureAtlasLayout::from_grid(UVec2::splat(16), 5, 5, None, None);
+            let layout = TextureAtlasLayout::from_grid(UVec2::splat(16), 5, 5, None, None);
             let layout_handle = texture_atlases.add(layout);
 
             for i in 0..8_u16 {
@@ -119,87 +143,4 @@ pub fn trigger_active_ability(
     }
 }
 
-// ── Active-ability HUD ────────────────────────────────────────────────────────
-
-pub fn spawn_active_ability_hud(
-    mut commands: Commands,
-    character: Res<SelectedCharacter>,
-) {
-    let label = match *character {
-        SelectedCharacter::Mage    => "BLINK [Q]",
-        SelectedCharacter::Archer  => "ARROW RAIN [Q]",
-        SelectedCharacter::Warlock => "VOID NOVA [Q]",
-    };
-    let color = character.accent_color();
-
-    commands
-        .spawn(Node {
-            position_type: PositionType::Absolute,
-            bottom: Val::VMin(7.0),
-            left: Val::Percent(50.0),
-            margin: UiRect::left(Val::VMin(-10.0)),
-            flex_direction: FlexDirection::Column,
-            align_items: AlignItems::Center,
-            row_gap: Val::VMin(0.5),
-            ..Default::default()
-        })
-        .with_children(|root| {
-            root.spawn((
-                Text::new(label),
-                TextFont {
-                    font_size: 11.0,
-                    ..Default::default()
-                },
-                TextColor(color),
-                ActiveAbilityLabel,
-            ));
-            root.spawn((
-                Node {
-                    width: Val::VMin(20.0),
-                    height: Val::VMin(2.2),
-                    border: UiRect::all(Val::Px(2.0)),
-                    overflow: Overflow::clip(),
-                    ..Default::default()
-                },
-                BorderColor::all(Color::srgba(
-                    color.to_srgba().red * 0.6,
-                    color.to_srgba().green * 0.6,
-                    color.to_srgba().blue * 0.6,
-                    1.0,
-                )),
-                BackgroundColor(Color::srgba(0.05, 0.05, 0.1, 0.8)),
-            ))
-            .with_children(|track| {
-                track.spawn((
-                    Node {
-                        width: Val::Percent(100.0),
-                        height: Val::Percent(100.0),
-                        ..Default::default()
-                    },
-                    BackgroundColor(color),
-                    ActiveAbilityCooldownFill,
-                ));
-            });
-        });
-}
-
-pub fn update_active_ability_hud(
-    player_query: Query<&ActiveAbility>,
-    mut fill_query: Query<(&mut Node, &mut BackgroundColor), With<ActiveAbilityCooldownFill>>,
-    character: Res<SelectedCharacter>,
-) {
-    let Ok(ability) = player_query.single() else {
-        return;
-    };
-    let pct = (ability.cooldown.fraction() * 100.0).clamp(0.0, 100.0);
-    let base_color = character.accent_color();
-    if let Ok((mut node, mut bg)) = fill_query.single_mut() {
-        node.width = Val::Percent(pct);
-        *bg = if ability.cooldown.is_finished() {
-            BackgroundColor(base_color)
-        } else {
-            let s = base_color.to_srgba();
-            BackgroundColor(Color::srgba(s.red * 0.4, s.green * 0.4, s.blue * 0.4, 1.0))
-        };
-    }
-}
+// HUD code moved to hud.rs

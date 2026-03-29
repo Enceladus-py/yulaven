@@ -12,7 +12,7 @@ impl Plugin for CombatPlugin {
             .init_resource::<nova::NovaCooldown>()
             .add_systems(
                 OnExit(crate::GameState::CharacterSelect),
-                (systems::setup_combat_assets, nova::spawn_nova_hud),
+                systems::setup_combat_assets,
             )
             .add_systems(
                 Update,
@@ -32,7 +32,6 @@ impl Plugin for CombatPlugin {
                     nova::trigger_nova,
                     nova::apply_nova,
                     nova::animate_nova_ring,
-                    nova::update_nova_hud,
                 )
                     .run_if(in_state(crate::GameState::Playing)),
             );

@@ -51,8 +51,7 @@ impl Plugin for UiPlugin {
             .add_systems(
                 OnExit(crate::GameState::CharacterSelect),
                 (
-                    hud::spawn_hud,
-                    hud::spawn_weapon_hud,
+                    hud::build_mobile_hud,
                     map_ui::spawn_minimap_hud,
                     map_ui::spawn_large_map,
                 ),
@@ -60,8 +59,7 @@ impl Plugin for UiPlugin {
             .add_systems(
                 Update,
                 (
-                    hud::update_hud,
-                    hud::update_weapon_hud,
+                    hud::update_mobile_hud,
                     map_ui::toggle_map,
                     map_ui::update_map,
                     map_ui::update_minimap_enemy_blips,

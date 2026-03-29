@@ -34,11 +34,11 @@ fn pick_enemy_kind(game_secs: f32, rng: &mut impl Rng) -> EnemyKind {
     // Build a weighted table that evolves over time.
     // Each entry is (EnemyKind, base_weight, unlocks_at_seconds).
     let candidates: &[(EnemyKind, f32, f32)] = &[
-        (EnemyKind::Grunt,   40.0,  0.0),
-        (EnemyKind::Goblin,  20.0, 15.0),
-        (EnemyKind::Runner,  20.0, 30.0),
+        (EnemyKind::Grunt, 40.0, 0.0),
+        (EnemyKind::Goblin, 20.0, 15.0),
+        (EnemyKind::Runner, 20.0, 30.0),
         (EnemyKind::Specter, 12.0, 60.0),
-        (EnemyKind::Brute,    8.0, 90.0),
+        (EnemyKind::Brute, 8.0, 90.0),
     ];
 
     let available: Vec<(EnemyKind, f32)> = candidates
@@ -169,14 +169,13 @@ pub fn move_enemies(
 
         if enemy.active && distance > 0.0 {
             let move_dir = direction.normalize();
-            let mut new_translation =
-                enemy_transform.translation + move_dir.extend(0.0) * stats.speed * time.delta_secs();
+            let mut new_translation = enemy_transform.translation
+                + move_dir.extend(0.0) * stats.speed * time.delta_secs();
 
             // Specters phase through structures — skip collision for them
             if !kind.ignores_structures() {
                 for (str_transform, collider) in &structure_query {
-                    let diff =
-                        new_translation.truncate() - str_transform.translation().truncate();
+                    let diff = new_translation.truncate() - str_transform.translation().truncate();
                     let dist_sq = diff.length_squared();
                     let half_size = kind.size().x * 0.5;
                     let min_dist = half_size + collider.radius;

@@ -34,6 +34,18 @@ pub struct PlayerAnimation {
 }
 
 #[derive(Component)]
+pub struct Teleporting {
+    pub timer: Timer,
+    pub target_translation: Vec2,
+    pub original_translation: Vec2,
+}
+
+#[derive(Component)]
+pub struct DashTrail {
+    pub lifetime: Timer,
+}
+
+#[derive(Component)]
 pub struct PlayerStats {
     pub level: u32,
     pub current_xp: f32,

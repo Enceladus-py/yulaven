@@ -56,23 +56,9 @@ pub fn spawn_minimap_hud(mut commands: Commands) {
                 BackgroundColor(Color::srgb(0.08, 0.08, 0.12)),
             ))
             .with_children(|map| {
-                // Spawn 4x4 grid of terrain colors, absolutely positioned
-                for y in -1..=2 {
-                    for x in -1..=2 {
-                        map.spawn((
-                            Node {
-                                position_type: PositionType::Absolute,
-                                width: Val::Percent(33.333),
-                                height: Val::Percent(33.333),
-                                ..Default::default()
-                            },
-                            BackgroundColor(Color::srgb(0.1, 0.1, 0.1)),
-                            UiTerrainTile {
-                                offset: IVec2::new(x, -y),
-                            },
-                        ));
-                    }
-                }
+                // The background is naturally circular due to border_radius.
+                // We do not spawn square terrain tiles here to prevent overflowing
+                // the rounded corners on platforms where Overflow::clip() is rectangular.
 
                 // ── Player blip ──────────────────────────────────────────────
                 map.spawn((
@@ -185,10 +171,7 @@ pub fn spawn_large_map(mut commands: Commands) {
 }
 
 /// Updates enemy blip positions on the minimap every frame.
-#[allow(
-    clippy::cast_precision_loss,
-    clippy::type_complexity
-)]
+#[allow(clippy::cast_precision_loss, clippy::type_complexity)]
 pub fn update_minimap_enemy_blips(
     player_query: Query<&Transform, With<Player>>,
     enemy_query: Query<(&Transform, Option<&EnemyKind>), With<Enemy>>,
@@ -220,18 +203,17 @@ pub fn update_minimap_enemy_blips(
             let px = clamped * scale;
             // Panel center is at 75px, blip is 5px wide → offset by 2.5
             let left = 75.0 + px.x - 2.5;
-            let top  = 75.0 - px.y - 2.5; // Y is inverted in UI space
+            let top = 75.0 - px.y - 2.5; // Y is inverted in UI space
             node.left = Val::Px(left);
-            node.top  = Val::Px(top);
+            node.top = Val::Px(top);
             *bg = BackgroundColor(*color);
         } else {
             // Hide unused blips off-screen
             node.left = Val::Px(-100.0);
-            node.top  = Val::Px(-100.0);
+            node.top = Val::Px(-100.0);
         }
     }
 }
-
 
 pub fn toggle_map(
     keyboard_input: Res<ButtonInput<KeyCode>>,

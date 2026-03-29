@@ -76,7 +76,13 @@ pub fn setup_combat_assets(
 pub fn fire_fireballs(
     time: Res<Time>,
     mut commands: Commands,
-    mut player_query: Query<(&Transform, &Sprite, &mut PlayerAnimation, &mut Player, &PlayerStats)>,
+    mut player_query: Query<(
+        &Transform,
+        &Sprite,
+        &mut PlayerAnimation,
+        &mut Player,
+        &PlayerStats,
+    )>,
     combat_assets: Res<CombatAssets>,
     enemy_query: Query<&Transform, With<Enemy>>,
     fireball_query: Query<Entity, With<Fireball>>,
@@ -169,7 +175,13 @@ pub fn fire_fireballs(
 pub fn fire_orbs(
     time: Res<Time>,
     mut commands: Commands,
-    mut player_query: Query<(&Transform, &Sprite, &mut PlayerAnimation, &mut Player, &PlayerStats)>,
+    mut player_query: Query<(
+        &Transform,
+        &Sprite,
+        &mut PlayerAnimation,
+        &mut Player,
+        &PlayerStats,
+    )>,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
     enemy_query: Query<&Transform, With<Enemy>>,
@@ -380,7 +392,7 @@ pub fn handle_spell_collisions(
                     .truncate()
                     .normalize_or_zero();
 
-                commands.entity(enemy_entity).insert((
+                commands.entity(enemy_entity).try_insert((
                     DamageFlash(Timer::from_seconds(DAMAGE_FLASH_DURATION, TimerMode::Once)),
                     Knockback {
                         velocity: knockback_dir * ENEMY_KNOCKBACK_SPEED,
@@ -415,7 +427,7 @@ pub fn handle_enemy_player_collisions(
                     .truncate()
                     .normalize_or_zero();
 
-                commands.entity(player_entity).insert((
+                commands.entity(player_entity).try_insert((
                     Invincible(Timer::from_seconds(INVINCIBILITY_DURATION, TimerMode::Once)),
                     Knockback {
                         velocity: knockback_dir * KNOCKBACK_SPEED,

@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
-use crate::player::character::SelectedCharacter;
 use crate::GameState;
+use crate::player::character::SelectedCharacter;
 
 #[derive(Component)]
 pub struct CharacterSelectMenu;

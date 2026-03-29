@@ -13,7 +13,7 @@ bevy = { version = "0.18", features = ["dynamic_linking"] }
 
 [package.metadata.android]
 package = "com.beratdalsuna.yulaven"
-orientation = "portrait"
+orientation = "sensorLandscape"
 min_sdk_version = 30
 target_sdk_version = 34
 assets = "assets"

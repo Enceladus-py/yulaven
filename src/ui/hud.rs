@@ -1,42 +1,49 @@
 use crate::core::components::Health;
+use crate::player::active_ability::ActiveAbilityButton;
+use crate::player::character::ActiveAbility;
+use crate::player::character::SelectedCharacter;
 use crate::player::components::{Player, PlayerStats};
 use bevy::prelude::*;
 
 #[derive(Component)]
-pub struct HealthBarFill;
+pub struct HealthFill;
 
 #[derive(Component)]
-pub struct XpBarFill;
-
-#[derive(Component)]
-pub struct OrbCooldownFill;
-
-#[derive(Component)]
-pub struct FireballChargeFill;
+pub struct XpFill;
 
 #[derive(Component)]
 pub struct LevelText;
 
-pub fn spawn_hud(mut commands: Commands) {
-    // Root: pinned to bottom-left
+#[derive(Component)]
+pub struct ActiveAbilityFill;
+
+/// Modern, sleek mobile HUD using deeply rounded shapes and premium colors.
+#[allow(clippy::too_many_lines)]
+pub fn build_mobile_hud(
+    mut commands: Commands,
+    character: Res<SelectedCharacter>,
+    asset_server: Res<AssetServer>,
+) {
+    // ── Top Left: Stats ────────────────────────────────────────────────────────
     commands
         .spawn(Node {
             position_type: PositionType::Absolute,
-            left: Val::VMin(2.0),
-            bottom: Val::VMin(2.0),
+            top: Val::VMin(4.0),
+            left: Val::VMin(4.0),
             flex_direction: FlexDirection::Column,
-            row_gap: Val::VMin(1.0),
+            row_gap: Val::VMin(1.5),
             ..Default::default()
         })
         .with_children(|root| {
-            // ── Level badge ─────────────────────────────────────────────────
+            // Level Badge
             root.spawn((
                 Text::new("Lv 1"),
                 TextFont {
-                    font_size: 18.0,
+                    font_size: 20.0,
+                    weight: bevy::text::FontWeight::BOLD,
                     ..Default::default()
                 },
-                TextColor(Color::srgb(1.0, 0.85, 0.1)),
+                TextColor(Color::srgb(0.9, 0.8, 0.2)),
                 Node {
                     margin: UiRect::bottom(Val::VMin(0.5)),
                     ..Default::default()
@@ -44,97 +51,139 @@ pub fn spawn_hud(mut commands: Commands) {
                 LevelText,
             ));
 
-            // ── Health bar ──────────────────────────────────────────────────
-            root.spawn(Node {
-                flex_direction: FlexDirection::Row,
-                align_items: AlignItems::Center,
-                column_gap: Val::Px(8.0),
-                ..Default::default()
-            })
-            .with_children(|row| {
-                row.spawn((
-                    Text::new("HP"),
-                    TextFont {
-                        font_size: 14.0,
-                        ..Default::default()
-                    },
-                    TextColor(Color::srgb(1.0, 0.4, 0.4)),
-                ));
-                // Background track
-                row.spawn((
+            // Health Pill Track
+            root.spawn((
+                Node {
+                    width: Val::VMin(35.0),
+                    height: Val::VMin(3.5),
+                    border_radius: BorderRadius::MAX,
+                    overflow: Overflow::clip(),
+                    border: UiRect::all(Val::Px(2.0)),
+                    ..Default::default()
+                },
+                BorderColor::all(Color::srgba(0.8, 0.1, 0.2, 0.7)),
+                BackgroundColor(Color::srgba(0.1, 0.0, 0.05, 0.85)),
+            ))
+            .with_children(|track| {
+                track.spawn((
                     Node {
-                        width: Val::VMin(30.0),
-                        height: Val::VMin(2.5),
-                        border: UiRect::all(Val::Px(2.0)),
-                        overflow: Overflow::clip(),
+                        width: Val::Percent(100.0),
+                        height: Val::Percent(100.0),
+                        border_radius: BorderRadius::MAX,
                         ..Default::default()
                     },
-                    BorderColor::all(Color::srgb(0.5, 0.15, 0.15)),
-                    BackgroundColor(Color::srgba(0.1, 0.0, 0.0, 0.8)),
-                ))
-                .with_children(|track| {
-                    track.spawn((
-                        Node {
-                            width: Val::Percent(100.0),
-                            height: Val::Percent(100.0),
-                            ..Default::default()
-                        },
-                        BackgroundColor(Color::srgb(0.2, 0.85, 0.3)),
-                        HealthBarFill,
-                    ));
-                });
+                    BackgroundColor(Color::srgb(0.9, 0.2, 0.3)), // Vibrant Red
+                    HealthFill,
+                ));
             });
 
-            // ── XP bar ─────────────────────────────────────────────────────
-            root.spawn(Node {
-                flex_direction: FlexDirection::Row,
-                align_items: AlignItems::Center,
-                column_gap: Val::Px(8.0),
-                ..Default::default()
-            })
-            .with_children(|row| {
-                row.spawn((
-                    Text::new("XP"),
-                    TextFont {
-                        font_size: 14.0,
-                        ..Default::default()
-                    },
-                    TextColor(Color::srgb(0.6, 0.4, 1.0)),
-                ));
-                // Background track
-                row.spawn((
+            // XP Pill Track
+            root.spawn((
+                Node {
+                    width: Val::VMin(35.0),
+                    height: Val::VMin(2.0),
+                    border_radius: BorderRadius::MAX,
+                    overflow: Overflow::clip(),
+                    border: UiRect::all(Val::Px(1.5)),
+                    ..Default::default()
+                },
+                BorderColor::all(Color::srgba(0.3, 0.1, 0.7, 0.7)),
+                BackgroundColor(Color::srgba(0.05, 0.0, 0.1, 0.85)),
+            ))
+            .with_children(|track| {
+                track.spawn((
                     Node {
-                        width: Val::VMin(30.0),
-                        height: Val::VMin(2.5),
-                        border: UiRect::all(Val::Px(2.0)),
-                        overflow: Overflow::clip(),
+                        width: Val::Percent(0.0),
+                        height: Val::Percent(100.0),
+                        border_radius: BorderRadius::MAX,
                         ..Default::default()
                     },
-                    BorderColor::all(Color::srgb(0.2, 0.1, 0.4)),
-                    BackgroundColor(Color::srgba(0.05, 0.0, 0.1, 0.8)),
-                ))
-                .with_children(|track| {
-                    track.spawn((
-                        Node {
-                            width: Val::Percent(0.0),
-                            height: Val::Percent(100.0),
-                            ..Default::default()
-                        },
-                        BackgroundColor(Color::srgb(0.55, 0.25, 1.0)),
-                        XpBarFill,
-                    ));
-                });
+                    BackgroundColor(Color::srgb(0.4, 0.2, 1.0)), // Deep Purple XP
+                    XpFill,
+                ));
+            });
+        });
+
+    // ── Bottom Right: Touch Abilities ─────────────────────────────────────────
+    let char_color = character.accent_color();
+
+    commands
+        .spawn(Node {
+            position_type: PositionType::Absolute,
+            bottom: Val::VMin(6.0),
+            right: Val::VMin(6.0),
+            flex_direction: FlexDirection::Row,
+            align_items: AlignItems::FlexEnd,
+            column_gap: Val::VMin(4.0),
+            ..Default::default()
+        })
+        .with_children(|root| {
+            let icon_path = match *character {
+                SelectedCharacter::Mage | SelectedCharacter::Archer => "ui/blink_icon.png",
+                SelectedCharacter::Warlock => "ui/nova_icon.png",
+            };
+
+            root.spawn((
+                Button,
+                ImageNode::new(asset_server.load(icon_path)),
+                Node {
+                    width: Val::VMin(16.0),
+                    height: Val::VMin(16.0),
+                    border_radius: BorderRadius::MAX,
+                    border: UiRect::all(Val::Px(3.0)),
+                    overflow: Overflow::clip(),
+                    ..Default::default()
+                },
+                BorderColor::all(char_color),
+                BackgroundColor(Color::srgba(0.05, 0.05, 0.05, 0.9)),
+                ActiveAbilityButton,
+            ))
+            .with_children(|btn| {
+                btn.spawn((
+                    Node {
+                        position_type: PositionType::Absolute,
+                        bottom: Val::Px(0.0),
+                        width: Val::Percent(100.0),
+                        height: Val::Percent(100.0),
+                        ..Default::default()
+                    },
+                    BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.6)),
+                    ActiveAbilityFill,
+                ));
             });
         });
 }
 
-pub fn update_hud(
-    player_query: Query<(&Health, &PlayerStats), With<Player>>,
-    mut hp_query: Query<&mut Node, (With<HealthBarFill>, Without<XpBarFill>)>,
-    mut xp_query: Query<&mut Node, (With<XpBarFill>, Without<HealthBarFill>)>,
+#[allow(clippy::type_complexity, clippy::too_many_arguments)]
+pub fn update_mobile_hud(
+    player_query: Query<(&Health, &PlayerStats, &ActiveAbility, &Player)>,
+    mut hp_query: Query<
+        &mut Node,
+        (
+            With<HealthFill>,
+            Without<XpFill>,
+            Without<ActiveAbilityFill>,
+        ),
+    >,
+    mut xp_query: Query<
+        &mut Node,
+        (
+            With<XpFill>,
+            Without<HealthFill>,
+            Without<ActiveAbilityFill>,
+        ),
+    >,
     mut level_text_query: Query<&mut Text, With<LevelText>>,
+    mut active_fill_query: Query<
+        &mut Node,
+        (
+            With<ActiveAbilityFill>,
+            Without<HealthFill>,
+            Without<XpFill>,
+        ),
+    >,
 ) {
-    let Ok((health, stats)) = player_query.single() else {
+    let Ok((health, stats, active_ability, _player)) = player_query.single() else {
         return;
     };
 
@@ -150,153 +199,10 @@ pub fn update_hud(
     if let Ok(mut text) = level_text_query.single_mut() {
         **text = format!("Lv {}", stats.level);
     }
-}
 
-// ── Weapon cooldown HUD (bottom-right) ──────────────────────────────────────
-#[allow(clippy::too_many_lines)]
-pub fn spawn_weapon_hud(mut commands: Commands) {
-    commands
-        .spawn(Node {
-            position_type: PositionType::Absolute,
-            right: Val::VMin(2.0),
-            bottom: Val::VMin(2.0),
-            flex_direction: FlexDirection::Column,
-            row_gap: Val::VMin(1.5),
-            ..Default::default()
-        })
-        .with_children(|root| {
-            // ── Orb card ───────────────────────────────────────────────────
-            root.spawn(Node {
-                flex_direction: FlexDirection::Row,
-                align_items: AlignItems::Center,
-                column_gap: Val::Px(6.0),
-                ..Default::default()
-            })
-            .with_children(|row| {
-                row.spawn((
-                    Node {
-                        width: Val::VMin(2.5),
-                        height: Val::VMin(2.5),
-                        ..Default::default()
-                    },
-                    BackgroundColor(Color::srgb(0.2, 0.55, 1.0)),
-                ));
-                row.spawn((
-                    Text::new("ORB"),
-                    TextFont {
-                        font_size: 13.0,
-                        ..Default::default()
-                    },
-                    TextColor(Color::WHITE),
-                ));
-                row.spawn((
-                    Node {
-                        width: Val::VMin(20.0),
-                        height: Val::VMin(2.2),
-                        border: UiRect::all(Val::Px(2.0)),
-                        overflow: Overflow::clip(),
-                        ..Default::default()
-                    },
-                    BorderColor::all(Color::srgb(0.2, 0.5, 1.0)),
-                    BackgroundColor(Color::srgba(0.05, 0.05, 0.05, 0.8)),
-                ))
-                .with_children(|track| {
-                    track.spawn((
-                        Node {
-                            width: Val::Percent(100.0),
-                            height: Val::Percent(100.0),
-                            ..Default::default()
-                        },
-                        BackgroundColor(Color::srgb(0.2, 0.55, 1.0)),
-                        OrbCooldownFill,
-                    ));
-                });
-            });
-
-            // ── Fireball card ──────────────────────────────────────────────
-            root.spawn(Node {
-                flex_direction: FlexDirection::Row,
-                align_items: AlignItems::Center,
-                column_gap: Val::Px(6.0),
-                ..Default::default()
-            })
-            .with_children(|row| {
-                row.spawn((
-                    Node {
-                        width: Val::VMin(2.5),
-                        height: Val::VMin(2.5),
-                        ..Default::default()
-                    },
-                    BackgroundColor(Color::srgb(1.0, 0.4, 0.05)),
-                ));
-                row.spawn((
-                    Text::new("FIREBALL"),
-                    TextFont {
-                        font_size: 13.0,
-                        ..Default::default()
-                    },
-                    TextColor(Color::WHITE),
-                ));
-                row.spawn((
-                    Node {
-                        width: Val::VMin(20.0),
-                        height: Val::VMin(2.2),
-                        border: UiRect::all(Val::Px(2.0)),
-                        overflow: Overflow::clip(),
-                        ..Default::default()
-                    },
-                    BorderColor::all(Color::srgb(0.5, 0.2, 0.1)),
-                    BackgroundColor(Color::srgba(0.05, 0.05, 0.05, 0.8)),
-                ))
-                .with_children(|track| {
-                    track.spawn((
-                        Node {
-                            width: Val::Percent(0.0),
-                            height: Val::Percent(100.0),
-                            ..Default::default()
-                        },
-                        BackgroundColor(Color::srgb(1.0, 0.4, 0.05)),
-                        FireballChargeFill,
-                    ));
-                });
-            });
-        });
-}
-
-#[allow(clippy::type_complexity)]
-pub fn update_weapon_hud(
-    player_query: Query<&Player>,
-    mut orb_query: Query<
-        (&mut Node, &mut BackgroundColor),
-        (With<OrbCooldownFill>, Without<FireballChargeFill>),
-    >,
-    mut fb_query: Query<
-        (&mut Node, &mut BackgroundColor),
-        (With<FireballChargeFill>, Without<OrbCooldownFill>),
-    >,
-) {
-    let Ok(player) = player_query.single() else {
-        return;
-    };
-
-    // Orb bar: shows how full the cooldown timer is (full = ready to fire)
-    let orb_elapsed = player.orb_timer.elapsed_secs();
-    let orb_duration = player.orb_timer.duration().as_secs_f32();
-    let orb_pct = (orb_elapsed / orb_duration * 100.0).clamp(0.0, 100.0);
-
-    if let Ok((mut node, _)) = orb_query.single_mut() {
-        node.width = Val::Percent(orb_pct);
-    }
-
-    // Fireball charge bar: charges / 5, turns bright orange when ready
-    let charges = player.orb_charges;
-    let charge_pct = f32::from(charges.min(5)) / 5.0 * 100.0;
-    if let Ok((mut node, mut bg)) = fb_query.single_mut() {
-        node.width = Val::Percent(charge_pct);
-        *bg = if charges >= 5 {
-            BackgroundColor(Color::srgb(1.0, 0.6, 0.0)) // bright gold = ready
-        } else {
-            BackgroundColor(Color::srgb(1.0, 0.4, 0.05)) // dim orange = charging
-        };
+    // Cooldown overlay: height 100% when charging (0% progress), 0% when ready (100% progress)
+    let active_pct = active_ability.cooldown.fraction();
+    if let Ok(mut node) = active_fill_query.single_mut() {
+        node.height = Val::Percent((1.0 - active_pct) * 100.0);
     }
 }

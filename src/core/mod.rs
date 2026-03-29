@@ -11,7 +11,7 @@ impl Plugin for CorePlugin {
         app.init_state::<state::GameState>()
             // Camera + terrain always present from the start
             .add_systems(Startup, setup::setup)
-            // Player spawns only when we leave CharacterSelect 
+            // Player spawns only when we leave CharacterSelect
             .add_systems(
                 OnExit(state::GameState::CharacterSelect),
                 setup::spawn_player,

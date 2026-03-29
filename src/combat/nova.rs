@@ -1,10 +1,10 @@
 use bevy::{prelude::*, time::TimerMode};
 
 use crate::{
+    combat::components::Knockback,
     constant::{DAMAGE_FLASH_DURATION, ENEMY_KNOCKBACK_DURATION, ENEMY_KNOCKBACK_SPEED},
     core::components::Health,
     enemy::components::{DamageFlash, Enemy},
-    combat::components::Knockback,
 };
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -40,12 +40,9 @@ pub struct NovaRing {
     pub lifetime: Timer,
 }
 
-/// On-screen Nova cooldown indicator (the arc/button in bottom center).
+/// Marker for Nova UI button.
 #[derive(Component)]
-pub struct NovaCooldownFill;
-
-#[derive(Component)]
-pub struct NovaCooldownRoot;
+pub struct NovaButton;
 
 // ── Systems ──────────────────────────────────────────────────────────────────
 
@@ -54,7 +51,11 @@ pub fn trigger_nova(
     mut cooldown: ResMut<NovaCooldown>,
     time: Res<Time>,
     keyboard: Res<ButtonInput<KeyCode>>,
-    player_query: Query<&Transform, With<crate::player::components::Player>>,
+    interaction_query: Query<&Interaction, (Changed<Interaction>, With<NovaButton>)>,
+    player_query: Query<
+        (&Transform, &crate::player::character::ActiveAbility),
+        With<crate::player::components::Player>,
+    >,
     mut ev_nova: MessageWriter<NovaEvent>,
 ) {
     cooldown.0.tick(time.delta());
@@ -63,13 +64,22 @@ pub fn trigger_nova(
         return;
     }
 
-    if keyboard.just_pressed(KeyCode::Space)
-        && let Ok(player_transform) = player_query.single() {
-            ev_nova.write(NovaEvent {
-                origin: player_transform.translation,
-            });
-            cooldown.0.reset();
+    let mut pressed = keyboard.just_pressed(KeyCode::Space);
+    for interaction in &interaction_query {
+        if *interaction == Interaction::Pressed {
+            pressed = true;
         }
+    }
+
+    if pressed
+        && let Ok((player_transform, ability)) = player_query.single()
+        && ability.kind == crate::player::character::SelectedCharacter::Warlock
+    {
+        ev_nova.write(NovaEvent {
+            origin: player_transform.translation,
+        });
+        cooldown.0.reset();
+    }
 }
 
 /// Applies damage + knockback to every enemy within `NOVA_RADIUS` of the origin.
@@ -113,7 +123,7 @@ pub fn apply_nova(
                     .truncate()
                     .normalize_or_zero();
 
-                commands.entity(enemy_entity).insert((
+                commands.entity(enemy_entity).try_insert((
                     DamageFlash(Timer::from_seconds(DAMAGE_FLASH_DURATION, TimerMode::Once)),
                     Knockback {
                         velocity: knockback_dir * ENEMY_KNOCKBACK_SPEED * 2.5, // stronger than normal
@@ -150,72 +160,4 @@ pub fn animate_nova_ring(
     }
 }
 
-// ── HUD: cooldown indicator ───────────────────────────────────────────────────
-
-pub fn spawn_nova_hud(mut commands: Commands) {
-    commands
-        .spawn((
-            Node {
-                position_type: PositionType::Absolute,
-                bottom: Val::VMin(2.0),
-                // Center horizontally
-                left: Val::Percent(50.0),
-                margin: UiRect::left(Val::VMin(-10.0)),
-                flex_direction: FlexDirection::Column,
-                align_items: AlignItems::Center,
-                row_gap: Val::VMin(0.5),
-                ..Default::default()
-            },
-            NovaCooldownRoot,
-        ))
-        .with_children(|root| {
-            // Label
-            root.spawn((
-                Text::new("NOVA [SPACE]"),
-                TextFont {
-                    font_size: 11.0,
-                    ..Default::default()
-                },
-                TextColor(Color::srgb(0.6, 0.3, 0.9)),
-            ));
-
-            // Track
-            root.spawn((
-                Node {
-                    width: Val::VMin(20.0),
-                    height: Val::VMin(2.2),
-                    border: UiRect::all(Val::Px(2.0)),
-                    overflow: Overflow::clip(),
-                    ..Default::default()
-                },
-                BorderColor::all(Color::srgb(0.4, 0.15, 0.7)),
-                BackgroundColor(Color::srgba(0.05, 0.0, 0.1, 0.8)),
-            ))
-            .with_children(|track| {
-                track.spawn((
-                    Node {
-                        width: Val::Percent(100.0),
-                        height: Val::Percent(100.0),
-                        ..Default::default()
-                    },
-                    BackgroundColor(Color::srgb(0.6, 0.2, 1.0)),
-                    NovaCooldownFill,
-                ));
-            });
-        });
-}
-
-pub fn update_nova_hud(
-    cooldown: Res<NovaCooldown>,
-    mut fill_query: Query<(&mut Node, &mut BackgroundColor), With<NovaCooldownFill>>,
-) {
-    let pct = (cooldown.0.fraction() * 100.0).clamp(0.0, 100.0);
-    if let Ok((mut node, mut bg)) = fill_query.single_mut() {
-        node.width = Val::Percent(pct);
-        *bg = if cooldown.0.is_finished() {
-            BackgroundColor(Color::srgb(0.8, 0.4, 1.0)) // bright = ready
-        } else {
-            BackgroundColor(Color::srgb(0.4, 0.1, 0.7)) // dim = charging
-        };
-    }
-}
+// HUD code removed from here, moving to hud.rs

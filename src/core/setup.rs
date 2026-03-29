@@ -5,10 +5,7 @@ use crate::map::components::{Collider, Structure, StructureAssets, TerrainTile};
 use crate::player::components::{Player, PlayerAnimation, PlayerStats};
 
 #[allow(clippy::cast_precision_loss, clippy::too_many_lines)]
-pub fn setup(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-) {
+pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((Camera2d, MainCamera));
 
     let pine_tree: Handle<Image> = asset_server.load("structures/pine_tree.png");

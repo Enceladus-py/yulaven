@@ -30,36 +30,36 @@ impl UpgradeKind {
     #[must_use]
     pub fn label(self) -> &'static str {
         match self {
-            Self::AttackSpeed  => "⚡ Attack Speed",
+            Self::AttackSpeed => "⚡ Attack Speed",
             Self::AttackDamage => "💥 Damage",
-            Self::MoveSpeed    => "👟 Move Speed",
-            Self::MaxHealth    => "❤️ Max Health",
-            Self::Magnet       => "🧲 Gem Magnet",
-            Self::FireRange    => "🎯 Fire Range",
+            Self::MoveSpeed => "👟 Move Speed",
+            Self::MaxHealth => "❤️ Max Health",
+            Self::Magnet => "🧲 Gem Magnet",
+            Self::FireRange => "🎯 Fire Range",
         }
     }
 
     #[must_use]
     pub fn description(self) -> &'static str {
         match self {
-            Self::AttackSpeed  => "+15% attack speed",
+            Self::AttackSpeed => "+15% attack speed",
             Self::AttackDamage => "+20% spell damage",
-            Self::MoveSpeed    => "+10% movement speed",
-            Self::MaxHealth    => "+25 maximum HP",
-            Self::Magnet       => "+25% gem magnet radius",
-            Self::FireRange    => "+20% targeting range",
+            Self::MoveSpeed => "+10% movement speed",
+            Self::MaxHealth => "+25 maximum HP",
+            Self::Magnet => "+25% gem magnet radius",
+            Self::FireRange => "+20% targeting range",
         }
     }
 
     #[must_use]
     pub fn accent_color(self) -> Color {
         match self {
-            Self::AttackSpeed  => Color::srgb(0.9, 0.8, 0.1),
+            Self::AttackSpeed => Color::srgb(0.9, 0.8, 0.1),
             Self::AttackDamage => Color::srgb(1.0, 0.3, 0.1),
-            Self::MoveSpeed    => Color::srgb(0.2, 0.8, 0.5),
-            Self::MaxHealth    => Color::srgb(0.2, 0.9, 0.3),
-            Self::Magnet       => Color::srgb(0.4, 0.5, 1.0),
-            Self::FireRange    => Color::srgb(0.6, 0.3, 1.0),
+            Self::MoveSpeed => Color::srgb(0.2, 0.8, 0.5),
+            Self::MaxHealth => Color::srgb(0.2, 0.9, 0.3),
+            Self::Magnet => Color::srgb(0.4, 0.5, 1.0),
+            Self::FireRange => Color::srgb(0.6, 0.3, 1.0),
         }
     }
 }
@@ -195,10 +195,7 @@ fn spawn_upgrade_card(parent: &mut ChildSpawnerCommands, kind: UpgradeKind) {
 
 #[allow(clippy::type_complexity)]
 pub fn handle_skill_selection(
-    interaction_query: Query<
-        (&Interaction, &UpgradeButton),
-        (Changed<Interaction>, With<Button>),
-    >,
+    interaction_query: Query<(&Interaction, &UpgradeButton), (Changed<Interaction>, With<Button>)>,
     mut next_state: ResMut<NextState<GameState>>,
     menu_query: Query<Entity, With<LevelUpMenu>>,
     mut commands: Commands,
@@ -219,13 +216,22 @@ pub fn handle_skill_selection(
     }
 }
 
-fn apply_upgrade(kind: UpgradeKind, player: &mut Player, health: &mut Health, stats: &mut PlayerStats) {
+fn apply_upgrade(
+    kind: UpgradeKind,
+    player: &mut Player,
+    health: &mut Health,
+    stats: &mut PlayerStats,
+) {
     match kind {
         UpgradeKind::AttackSpeed => {
             let new_fb = player.fireball_timer.duration().as_secs_f32() * 0.85;
-            player.fireball_timer.set_duration(std::time::Duration::from_secs_f32(new_fb.max(0.1)));
+            player
+                .fireball_timer
+                .set_duration(std::time::Duration::from_secs_f32(new_fb.max(0.1)));
             let new_orb = player.orb_timer.duration().as_secs_f32() * 0.85;
-            player.orb_timer.set_duration(std::time::Duration::from_secs_f32(new_orb.max(0.2)));
+            player
+                .orb_timer
+                .set_duration(std::time::Duration::from_secs_f32(new_orb.max(0.2)));
         }
         UpgradeKind::AttackDamage => {
             stats.damage_multiplier *= 1.20;
