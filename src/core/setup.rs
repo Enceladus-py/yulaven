@@ -8,7 +8,6 @@ use crate::player::components::{Player, PlayerAnimation, PlayerStats};
 pub fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
 ) {
     commands.spawn((Camera2d, MainCamera));
 
@@ -130,10 +129,47 @@ pub fn setup(
                 });
         }
     }
+}
 
+/// Spawns the player entity when entering the Playing state.
+/// Reads the `SelectedCharacter` to tune the starting stats, timers, and active abilities.
+pub fn spawn_player(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
+    selected: Res<crate::player::character::SelectedCharacter>,
+) {
     let texture_handle = asset_server.load("outline/MiniMage.png");
     let texture_atlas = TextureAtlasLayout::from_grid(UVec2::splat(32), 12, 12, None, None);
     let texture_atlas_handle = texture_atlases.add(texture_atlas);
+
+    let mut start_health = 100.0;
+    let mut stats = PlayerStats::default();
+    let mut orb_timer = Timer::from_seconds(1.5, TimerMode::Repeating); // default
+    let mut orb_charges = 0;
+
+    match *selected {
+        crate::player::character::SelectedCharacter::Mage => {
+            // Defaults remain
+        }
+        crate::player::character::SelectedCharacter::Archer => {
+            orb_timer = Timer::from_seconds(0.35, TimerMode::Repeating);
+            orb_charges = 255;
+            start_health = 75.0;
+            stats.max_health = 75.0;
+            stats.speed_multiplier = 1.25;
+            stats.damage_multiplier = 0.8;
+            stats.attack_range = 650.0;
+        }
+        crate::player::character::SelectedCharacter::Warlock => {
+            orb_timer = Timer::from_seconds(2.2, TimerMode::Repeating);
+            start_health = 150.0;
+            stats.max_health = 150.0;
+            stats.speed_multiplier = 0.85;
+            stats.damage_multiplier = 1.5;
+            stats.attack_range = 450.0;
+        }
+    }
 
     commands.spawn((
         Sprite {
@@ -151,15 +187,18 @@ pub fn setup(
         },
         Player {
             facing_direction: Vec2::new(1.0, 0.0),
+            orb_timer,
+            orb_charges,
             ..Default::default()
         },
-        Health(100.0),
-        PlayerStats::default(),
+        Health(start_health),
+        stats,
         PlayerAnimation {
             timer: Timer::from_seconds(0.1, TimerMode::Repeating),
             first_frame: 0,
             last_frame: 3,
             attack_timer: Timer::from_seconds(0.0, TimerMode::Once),
         },
+        crate::player::character::ActiveAbility::new(*selected),
     ));
 }

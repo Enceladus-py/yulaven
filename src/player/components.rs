@@ -39,6 +39,14 @@ pub struct PlayerStats {
     pub current_xp: f32,
     pub required_xp: f32,
     pub magnet_radius: f32,
+    /// World-unit radius in which the player will target enemies (must be on screen)
+    pub attack_range: f32,
+    /// Multiplier applied to all outgoing spell damage (1.0 = base)
+    pub damage_multiplier: f32,
+    /// Multiplier applied to player movement speed (1.0 = base)
+    pub speed_multiplier: f32,
+    /// Current maximum HP ceiling (drives health bar display)
+    pub max_health: f32,
 }
 
 impl Default for PlayerStats {
@@ -48,6 +56,10 @@ impl Default for PlayerStats {
             current_xp: 0.0,
             required_xp: 10.0,
             magnet_radius: 150.0,
+            attack_range: 500.0,
+            damage_multiplier: 1.0,
+            speed_multiplier: 1.0,
+            max_health: 100.0,
         }
     }
 }

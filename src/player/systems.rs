@@ -1,15 +1,21 @@
 use bevy::prelude::*;
 
-use super::components::{Player, PlayerAnimation};
+use super::components::{Player, PlayerAnimation, PlayerStats};
 use crate::map::components::{Collider, Structure};
 use crate::ui::JoystickInput;
-use crate::{constant::PLAYER_SPEED, core::components::MainCamera};
+use crate::{
+    constant::{ARENA_RADIUS, PLAYER_SPEED},
+    core::components::MainCamera,
+};
 
 // Player movement system
 pub fn move_player(
     keyboard_input: Res<ButtonInput<KeyCode>>,
     joystick: Res<JoystickInput>,
-    mut player_query: Query<(&mut Transform, &mut PlayerAnimation, &mut Player), With<Player>>,
+    mut player_query: Query<
+        (&mut Transform, &mut PlayerAnimation, &mut Player, &PlayerStats),
+        With<Player>,
+    >,
     mut camera_query: Query<&mut Transform, (With<MainCamera>, Without<Player>)>,
     structure_query: Query<(&GlobalTransform, &Collider), With<Structure>>,
     time: Res<Time>,
@@ -47,7 +53,7 @@ pub fn move_player(
         has_input = true;
     }
 
-    if let Ok((mut player_transform, mut animation, mut player)) = player_query.single_mut() {
+    if let Ok((mut player_transform, mut animation, mut player, stats)) = player_query.single_mut() {
         // Subtle squash/stretch based on vertical movement.
         if direction.y > 0.0 {
             player_transform.scale.y = 4.3;
@@ -60,7 +66,7 @@ pub fn move_player(
         if has_input && direction.length_squared() > 0.0 {
             // Normalize direction and move the player
             let mut new_translation = player_transform.translation
-                + direction.normalize() * PLAYER_SPEED * time.delta_secs();
+                + direction.normalize() * PLAYER_SPEED * stats.speed_multiplier * time.delta_secs();
 
             // Collision resolution
             for (str_transform, collider) in &structure_query {
@@ -74,6 +80,11 @@ pub fn move_player(
                     let depth = min_dist - dist;
                     new_translation += (push_dir * depth).extend(0.0);
                 }
+            }
+
+            // Keep the player inside the arena boundary
+            if new_translation.truncate().length_squared() > ARENA_RADIUS * ARENA_RADIUS {
+                new_translation = new_translation.truncate().normalize().extend(0.0) * ARENA_RADIUS;
             }
 
             player_transform.translation = new_translation;

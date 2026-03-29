@@ -1,32 +1,40 @@
 use bevy::prelude::*;
 
 pub mod components;
+pub mod nova;
 pub mod systems;
 
 pub struct CombatPlugin;
 
 impl Plugin for CombatPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            OnEnter(crate::GameState::Playing),
-            systems::setup_combat_assets,
-        )
-        .add_systems(
-            Update,
-            (
-                systems::fire_fireballs,
-                systems::fire_orbs,
-                systems::move_fireballs,
-                systems::move_orbs,
-                systems::animate_spell,
-                systems::apply_knockback,
-                systems::handle_invincibility,
-                systems::handle_damage_flash,
-                systems::handle_spell_collisions,
-                systems::handle_enemy_player_collisions,
-                systems::handle_death,
+        app.add_message::<nova::NovaEvent>()
+            .init_resource::<nova::NovaCooldown>()
+            .add_systems(
+                OnExit(crate::GameState::CharacterSelect),
+                (systems::setup_combat_assets, nova::spawn_nova_hud),
             )
-                .run_if(in_state(crate::GameState::Playing)),
-        );
+            .add_systems(
+                Update,
+                (
+                    systems::fire_fireballs,
+                    systems::fire_orbs,
+                    systems::move_fireballs,
+                    systems::move_orbs,
+                    systems::animate_spell,
+                    systems::apply_knockback,
+                    systems::handle_invincibility,
+                    systems::handle_damage_flash,
+                    systems::handle_spell_collisions,
+                    systems::handle_enemy_player_collisions,
+                    systems::handle_death,
+                    // Nova
+                    nova::trigger_nova,
+                    nova::apply_nova,
+                    nova::animate_nova_ring,
+                    nova::update_nova_hud,
+                )
+                    .run_if(in_state(crate::GameState::Playing)),
+            );
     }
 }

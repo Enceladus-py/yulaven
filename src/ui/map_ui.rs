@@ -1,3 +1,4 @@
+use crate::enemy::components::{Enemy, EnemyKind};
 use crate::player::components::Player;
 use bevy::prelude::*;
 
@@ -18,6 +19,18 @@ pub struct UiTerrainTile {
     pub offset: IVec2,
 }
 
+/// Tag for the pre-spawned enemy blip pool nodes inside the minimap.
+#[derive(Component)]
+pub struct MinimapEnemyBlip {
+    pub index: usize,
+}
+
+/// How many enemy blips the minimap pool contains.
+pub const MAX_MINIMAP_BLIPS: usize = 30;
+
+/// World-space radius the minimap covers (enemies beyond this are clamped to edge).
+pub const MINIMAP_WORLD_RADIUS: f32 = 1200.0;
+
 pub fn spawn_minimap_hud(mut commands: Commands) {
     commands
         .spawn((
@@ -36,10 +49,11 @@ pub fn spawn_minimap_hud(mut commands: Commands) {
                     height: Val::Px(150.0),
                     border: UiRect::all(Val::Px(4.0)),
                     overflow: Overflow::clip(),
+                    border_radius: BorderRadius::all(Val::Percent(50.0)),
                     ..Default::default()
                 },
-                BorderColor::all(Color::srgb(0.2, 0.2, 0.2)),
-                BackgroundColor(Color::srgb(0.1, 0.1, 0.1)),
+                BorderColor::all(Color::srgb(0.3, 0.3, 0.4)),
+                BackgroundColor(Color::srgb(0.08, 0.08, 0.12)),
             ))
             .with_children(|map| {
                 // Spawn 4x4 grid of terrain colors, absolutely positioned
@@ -60,23 +74,43 @@ pub fn spawn_minimap_hud(mut commands: Commands) {
                     }
                 }
 
+                // ── Player blip ──────────────────────────────────────────────
                 map.spawn((
                     Node {
                         position_type: PositionType::Absolute,
-                        width: Val::Px(6.0),
-                        height: Val::Px(6.0),
+                        width: Val::Px(8.0),
+                        height: Val::Px(8.0),
                         left: Val::Percent(50.0),
                         top: Val::Percent(50.0),
                         margin: UiRect {
-                            left: Val::Px(-3.0),
-                            top: Val::Px(-3.0),
+                            left: Val::Px(-4.0),
+                            top: Val::Px(-4.0),
                             ..Default::default()
                         },
+                        border_radius: BorderRadius::all(Val::Percent(50.0)),
                         ..Default::default()
                     },
-                    BackgroundColor(Color::srgb(1.0, 0.0, 0.0)),
+                    BackgroundColor(Color::srgb(1.0, 1.0, 1.0)),
                     MinimapPlayerBlip,
                 ));
+
+                // ── Enemy blip pool ───────────────────────────────────────────
+                for i in 0..MAX_MINIMAP_BLIPS {
+                    map.spawn((
+                        Node {
+                            position_type: PositionType::Absolute,
+                            width: Val::Px(5.0),
+                            height: Val::Px(5.0),
+                            // Hidden off-map by default
+                            left: Val::Px(-100.0),
+                            top: Val::Px(-100.0),
+                            border_radius: BorderRadius::all(Val::Percent(50.0)),
+                            ..Default::default()
+                        },
+                        BackgroundColor(Color::srgb(0.9, 0.2, 0.2)),
+                        MinimapEnemyBlip { index: i },
+                    ));
+                }
             });
         });
 }
@@ -149,6 +183,55 @@ pub fn spawn_large_map(mut commands: Commands) {
             });
         });
 }
+
+/// Updates enemy blip positions on the minimap every frame.
+#[allow(
+    clippy::cast_precision_loss,
+    clippy::type_complexity
+)]
+pub fn update_minimap_enemy_blips(
+    player_query: Query<&Transform, With<Player>>,
+    enemy_query: Query<(&Transform, Option<&EnemyKind>), With<Enemy>>,
+    mut blip_query: Query<(&MinimapEnemyBlip, &mut Node, &mut BackgroundColor)>,
+) {
+    let Ok(player_transform) = player_query.single() else {
+        return;
+    };
+    let player_pos = player_transform.translation.truncate();
+
+    // Collect visible enemies, capped at the pool size
+    let enemies: Vec<(Vec2, Color)> = enemy_query
+        .iter()
+        .take(MAX_MINIMAP_BLIPS)
+        .map(|(t, opt_kind)| {
+            let color = opt_kind.map_or(Color::srgb(0.9, 0.2, 0.2), |k| k.color());
+            (t.translation.truncate(), color)
+        })
+        .collect();
+
+    // Minimap panel is 150×150 px. Map MINIMAP_WORLD_RADIUS world-units → 75 px (half of panel).
+    let scale = 75.0 / MINIMAP_WORLD_RADIUS;
+
+    for (blip, mut node, mut bg) in &mut blip_query {
+        if let Some((world_pos, color)) = enemies.get(blip.index) {
+            let delta = *world_pos - player_pos;
+            // Clamp so blips on the edge still appear instead of disappearing
+            let clamped = delta.clamp_length_max(MINIMAP_WORLD_RADIUS);
+            let px = clamped * scale;
+            // Panel center is at 75px, blip is 5px wide → offset by 2.5
+            let left = 75.0 + px.x - 2.5;
+            let top  = 75.0 - px.y - 2.5; // Y is inverted in UI space
+            node.left = Val::Px(left);
+            node.top  = Val::Px(top);
+            *bg = BackgroundColor(*color);
+        } else {
+            // Hide unused blips off-screen
+            node.left = Val::Px(-100.0);
+            node.top  = Val::Px(-100.0);
+        }
+    }
+}
+
 
 pub fn toggle_map(
     keyboard_input: Res<ButtonInput<KeyCode>>,

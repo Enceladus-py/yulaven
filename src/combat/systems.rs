@@ -10,16 +10,50 @@ use crate::{
         FIREBALL_SPEED_FACTOR, FIREBALL_START_SPEED, INVINCIBILITY_DURATION, KNOCKBACK_DURATION,
         KNOCKBACK_SPEED, ORB_SPEED,
     },
-    core::components::Health,
-    enemy::components::{DamageFlash, Enemy},
+    core::components::{Health, MainCamera},
+    enemy::components::{DamageFlash, Enemy, EnemyKind, EnemyStats},
     map::components::ExperienceGem,
-    player::components::{Player, PlayerAnimation},
+    player::components::{Player, PlayerAnimation, PlayerStats},
 };
 
 const ORB_CHARGES_NEEDED: u8 = 5;
 const MAX_GEMS: usize = 300; // Limit gems to prevent Mali driver crashes on Android
-const ATTACK_RANGE: f32 = 400.0; // range for "on frame" optimization
 const MAX_PROJECTILES: usize = 40; // Cap projectiles to prevent Mali driver overload on rapid fire
+
+/// Returns true when `world_pos` is within the camera's visible world-space rectangle.
+/// A `margin` (in world units) can extend the check slightly beyond the visible edge so
+/// enemies just entering the screen feel natural to target immediately.
+fn enemy_in_viewport(
+    camera: &Camera,
+    cam_gtf: &GlobalTransform,
+    world_pos: Vec3,
+    margin: f32,
+) -> bool {
+    // viewport_to_world gives us the world-space ray for a viewport point.
+    // We reconstruct the world-space AABB from the four corners of the viewport.
+    let Some(viewport_size) = camera.logical_viewport_size() else {
+        return true; // fallback: allow firing if we can't determine viewport
+    };
+    let corners = [
+        Vec2::ZERO,
+        Vec2::new(viewport_size.x, 0.0),
+        Vec2::new(0.0, viewport_size.y),
+        viewport_size,
+    ];
+    let mut min = Vec2::splat(f32::MAX);
+    let mut max = Vec2::splat(f32::MIN);
+    for corner in corners {
+        if let Ok(ray) = camera.viewport_to_world(cam_gtf, corner) {
+            min = min.min(ray.origin.truncate());
+            max = max.max(ray.origin.truncate());
+        }
+    }
+    let pos = world_pos.truncate();
+    pos.x >= min.x - margin
+        && pos.x <= max.x + margin
+        && pos.y >= min.y - margin
+        && pos.y <= max.y + margin
+}
 
 /// Pre-loads the projectile texture + atlas layout ONCE when entering Playing state.
 /// This prevents `TextureAtlasLayout::from_grid` + `texture_atlases.add` from being
@@ -38,39 +72,43 @@ pub fn setup_combat_assets(
     });
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn fire_fireballs(
     time: Res<Time>,
     mut commands: Commands,
-    mut player_query: Query<(&Transform, &Sprite, &mut PlayerAnimation, &mut Player)>,
+    mut player_query: Query<(&Transform, &Sprite, &mut PlayerAnimation, &mut Player, &PlayerStats)>,
     combat_assets: Res<CombatAssets>,
     enemy_query: Query<&Transform, With<Enemy>>,
     fireball_query: Query<Entity, With<Fireball>>,
     orb_query: Query<Entity, With<Orb>>,
+    camera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
 ) {
-    if let Ok((player_transform, _sprite, mut animation, mut player)) = player_query.single_mut() {
+    let Ok((camera, cam_gtf)) = camera_query.single() else {
+        return;
+    };
+    if let Ok((player_transform, _sprite, mut animation, mut player, stats)) =
+        player_query.single_mut()
+    {
         player.fireball_timer.tick(time.delta());
 
         if !player.fireball_timer.just_finished() || player.orb_charges < ORB_CHARGES_NEEDED {
             return;
         }
 
-        let Some(enemy_transform) = nearest_enemy(player_transform.translation, &enemy_query)
-        else {
+        let Some(enemy_transform) = nearest_visible_enemy(
+            player_transform.translation,
+            &enemy_query,
+            camera,
+            cam_gtf,
+            stats.attack_range,
+        ) else {
             return;
         };
-
-        if enemy_transform
-            .translation
-            .distance(player_transform.translation)
-            > ATTACK_RANGE
-        {
-            return;
-        }
 
         player.orb_charges = 0;
 
         // 1. Convert Vec3 translations to Vec2
-        let player_pos = player_transform.translation.truncate(); // Converts Vec3 to Vec2
+        let player_pos = player_transform.translation.truncate();
         let enemy_pos = enemy_transform.translation.truncate();
 
         // 2. Now the math works because both are Vec2
@@ -81,7 +119,6 @@ pub fn fire_fireballs(
         let fireball_rotation = Quat::from_rotation_z(angle);
 
         // 4. For the spawn position, you can convert back to Vec3
-        // keeping the player's Z-layer (usually 1.0 or similar)
         let spawn_offset_dist = 30.0;
         let spawn_pos_vec2 = player_pos + (direction * spawn_offset_dist);
         let fireball_spawn_pos = spawn_pos_vec2.extend(player_transform.translation.z);
@@ -108,20 +145,22 @@ pub fn fire_fireballs(
                 ..Default::default()
             },
             Transform {
-                translation: fireball_spawn_pos, // Applied offset
-                rotation: fireball_rotation,     // Applied rotation
+                translation: fireball_spawn_pos,
+                rotation: fireball_rotation,
                 scale: Vec3::splat(4.0),
             },
             Fireball {
                 progress: 0.0,
-                direction, // Pass the normalized vector
+                direction,
             },
             FireballAnimation {
                 timer: Timer::from_seconds(0.1, TimerMode::Repeating),
                 first_frame: 5,
                 last_frame: 6,
             },
-            Spell { damage: 25.0 },
+            Spell {
+                damage: 25.0 * stats.damage_multiplier,
+            },
         ));
     }
 }
@@ -130,31 +169,34 @@ pub fn fire_fireballs(
 pub fn fire_orbs(
     time: Res<Time>,
     mut commands: Commands,
-    mut player_query: Query<(&Transform, &Sprite, &mut PlayerAnimation, &mut Player)>,
+    mut player_query: Query<(&Transform, &Sprite, &mut PlayerAnimation, &mut Player, &PlayerStats)>,
     asset_server: Res<AssetServer>,
     mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
     enemy_query: Query<&Transform, With<Enemy>>,
     fireball_query: Query<Entity, With<Fireball>>,
     orb_query: Query<Entity, With<Orb>>,
+    camera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
 ) {
-    if let Ok((player_transform, sprite, mut animation, mut player)) = player_query.single_mut() {
+    let Ok((camera, cam_gtf)) = camera_query.single() else {
+        return;
+    };
+    if let Ok((player_transform, sprite, mut animation, mut player, stats)) =
+        player_query.single_mut()
+    {
         player.orb_timer.tick(time.delta());
         if !player.orb_timer.just_finished() {
             return;
         }
 
-        let Some(enemy_transform) = nearest_enemy(player_transform.translation, &enemy_query)
-        else {
+        let Some(enemy_transform) = nearest_visible_enemy(
+            player_transform.translation,
+            &enemy_query,
+            camera,
+            cam_gtf,
+            stats.attack_range,
+        ) else {
             return;
         };
-
-        if enemy_transform
-            .translation
-            .distance(player_transform.translation)
-            > ATTACK_RANGE
-        {
-            return;
-        }
 
         animation.first_frame = 60;
         animation.last_frame = 64;
@@ -176,14 +218,9 @@ pub fn fire_orbs(
 
         let offset_x = if sprite.flip_x { -20.0 } else { 20.0 };
 
-        let initial_direction = nearest_enemy(player_transform.translation, &enemy_query).map_or(
-            player.facing_direction,
-            |et| {
-                (et.translation - player_transform.translation)
-                    .truncate()
-                    .normalize_or_zero()
-            },
-        );
+        let initial_direction = (enemy_transform.translation - player_transform.translation)
+            .truncate()
+            .normalize_or_zero();
 
         commands.spawn((
             Sprite {
@@ -208,7 +245,9 @@ pub fn fire_orbs(
             Orb {
                 direction: initial_direction,
             },
-            Spell { damage: 15.0 },
+            Spell {
+                damage: 15.0 * stats.damage_multiplier,
+            },
         ));
     }
 }
@@ -362,15 +401,15 @@ pub fn handle_enemy_player_collisions(
         (Entity, &Transform, &mut Health),
         (With<Player>, Without<Enemy>, Without<Invincible>),
     >,
-    enemy_query: Query<&Transform, With<Enemy>>,
+    enemy_query: Query<(&Transform, &EnemyStats), With<Enemy>>,
 ) {
     if let Ok((player_entity, player_transform, mut player_health)) = player_query.single_mut() {
-        for enemy_transform in &enemy_query {
+        for (enemy_transform, enemy_stats) in &enemy_query {
             let distance = player_transform
                 .translation
                 .distance(enemy_transform.translation);
             if distance < 30.0 {
-                player_health.0 -= 1.0;
+                player_health.0 -= enemy_stats.contact_damage;
 
                 let knockback_dir = (player_transform.translation - enemy_transform.translation)
                     .truncate()
@@ -397,6 +436,7 @@ pub fn handle_death(
         &Health,
         Option<&Transform>,
         Option<&Enemy>,
+        Option<&EnemyStats>,
         Option<&Player>,
     )>,
     gem_query: Query<Entity, With<ExperienceGem>>,
@@ -404,7 +444,7 @@ pub fn handle_death(
 ) {
     let gem_count = gem_query.iter().count();
 
-    for (entity, health, opt_transform, opt_enemy, opt_player) in &query {
+    for (entity, health, opt_transform, opt_enemy, opt_stats, opt_player) in &query {
         if health.0 <= 0.0 {
             if opt_player.is_some() {
                 next_state.set(GameState::GameOver);
@@ -420,6 +460,8 @@ pub fn handle_death(
                 continue;
             };
 
+            let xp = opt_stats.map_or(10.0, |s| s.xp_drop);
+
             // Limit gem count to prevent GPU driver overcrowding
             if gem_count < MAX_GEMS {
                 commands.spawn((
@@ -429,34 +471,46 @@ pub fn handle_death(
                         ..Default::default()
                     },
                     Transform::from_translation(transform.translation),
-                    ExperienceGem { amount: 10.0 },
+                    ExperienceGem { amount: xp },
                 ));
             }
         }
     }
 }
 
-fn nearest_enemy<'a>(
+/// Finds the nearest enemy that is both within `max_range` world units of `origin`
+/// AND visible within the camera's viewport (with a 60px margin).
+fn nearest_visible_enemy<'a>(
     origin: Vec3,
     enemy_query: &'a Query<&Transform, With<Enemy>>,
+    camera: &Camera,
+    cam_gtf: &GlobalTransform,
+    max_range: f32,
 ) -> Option<&'a Transform> {
-    enemy_query.iter().min_by(|a, b| {
-        let da = a.translation.distance_squared(origin);
-        let db = b.translation.distance_squared(origin);
-        da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
-    })
+    enemy_query
+        .iter()
+        .filter(|t| {
+            let dist = t.translation.distance(origin);
+            dist <= max_range && enemy_in_viewport(camera, cam_gtf, t.translation, 60.0)
+        })
+        .min_by(|a, b| {
+            let da = a.translation.distance_squared(origin);
+            let db = b.translation.distance_squared(origin);
+            da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
+        })
 }
 
 pub fn handle_damage_flash(
     mut commands: Commands,
-    mut query: Query<(Entity, &mut Sprite, &mut DamageFlash)>,
+    mut query: Query<(Entity, &mut Sprite, &mut DamageFlash, Option<&EnemyKind>)>,
     time: Res<Time>,
 ) {
-    for (entity, mut sprite, mut flash) in &mut query {
+    for (entity, mut sprite, mut flash, opt_kind) in &mut query {
         flash.0.tick(time.delta());
 
         if flash.0.is_finished() {
-            sprite.color = Color::srgb(0.6, 0.2, 0.2); // Original enemy color
+            // Restore to the kind-specific original color (or white for non-enemies)
+            sprite.color = opt_kind.map_or(Color::WHITE, |k| k.color());
             commands.entity(entity).remove::<DamageFlash>();
         } else {
             sprite.color = Color::WHITE;

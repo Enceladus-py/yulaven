@@ -1,9 +1,11 @@
 use bevy::prelude::*;
 
+pub mod character_select;
 pub mod game_over;
 pub mod hud;
 pub mod joystick;
 pub mod level_up;
+pub mod main_menu;
 pub mod map_ui;
 
 // Re-export common UI components/markers if needed widely
@@ -19,8 +21,35 @@ impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<joystick::JoystickInput>()
             .init_resource::<joystick::JoystickFinger>()
+            // ── Main Menu ────────────────────────────────────────────────────
             .add_systems(
-                Startup,
+                OnEnter(crate::GameState::MainMenu),
+                main_menu::spawn_main_menu,
+            )
+            .add_systems(
+                Update,
+                (
+                    main_menu::handle_main_menu,
+                    main_menu::highlight_play_button,
+                )
+                    .run_if(in_state(crate::GameState::MainMenu)),
+            )
+            // ── Character select ─────────────────────────────────────────────
+            .add_systems(
+                OnEnter(crate::GameState::CharacterSelect),
+                character_select::spawn_character_select,
+            )
+            .add_systems(
+                Update,
+                (
+                    character_select::handle_character_select,
+                    character_select::highlight_character_card,
+                )
+                    .run_if(in_state(crate::GameState::CharacterSelect)),
+            )
+            // ── In-game HUD (spawned when exiting CharacterSelect) ───────────────
+            .add_systems(
+                OnExit(crate::GameState::CharacterSelect),
                 (
                     hud::spawn_hud,
                     hud::spawn_weapon_hud,
@@ -35,6 +64,7 @@ impl Plugin for UiPlugin {
                     hud::update_weapon_hud,
                     map_ui::toggle_map,
                     map_ui::update_map,
+                    map_ui::update_minimap_enemy_blips,
                 )
                     .run_if(in_state(crate::GameState::Playing)),
             )
@@ -44,11 +74,14 @@ impl Plugin for UiPlugin {
             );
 
         #[cfg(any(target_os = "android", target_os = "ios"))]
-        app.add_systems(Startup, joystick::spawn_joystick)
-            .add_systems(
-                Update,
-                joystick::update_joystick.run_if(in_state(crate::GameState::Playing)),
-            );
+        app.add_systems(
+            OnExit(crate::GameState::CharacterSelect),
+            joystick::spawn_joystick,
+        )
+        .add_systems(
+            Update,
+            joystick::update_joystick.run_if(in_state(crate::GameState::Playing)),
+        );
 
         app.add_systems(
             OnEnter(crate::GameState::LevelUp),

@@ -2,8 +2,6 @@ use crate::core::components::Health;
 use crate::player::components::{Player, PlayerStats};
 use bevy::prelude::*;
 
-const PLAYER_MAX_HEALTH: f32 = 100.0;
-
 #[derive(Component)]
 pub struct HealthBarFill;
 
@@ -15,6 +13,9 @@ pub struct OrbCooldownFill;
 
 #[derive(Component)]
 pub struct FireballChargeFill;
+
+#[derive(Component)]
+pub struct LevelText;
 
 pub fn spawn_hud(mut commands: Commands) {
     // Root: pinned to bottom-left
@@ -28,6 +29,21 @@ pub fn spawn_hud(mut commands: Commands) {
             ..Default::default()
         })
         .with_children(|root| {
+            // ── Level badge ─────────────────────────────────────────────────
+            root.spawn((
+                Text::new("Lv 1"),
+                TextFont {
+                    font_size: 18.0,
+                    ..Default::default()
+                },
+                TextColor(Color::srgb(1.0, 0.85, 0.1)),
+                Node {
+                    margin: UiRect::bottom(Val::VMin(0.5)),
+                    ..Default::default()
+                },
+                LevelText,
+            ));
+
             // ── Health bar ──────────────────────────────────────────────────
             root.spawn(Node {
                 flex_direction: FlexDirection::Row,
@@ -116,12 +132,13 @@ pub fn update_hud(
     player_query: Query<(&Health, &PlayerStats), With<Player>>,
     mut hp_query: Query<&mut Node, (With<HealthBarFill>, Without<XpBarFill>)>,
     mut xp_query: Query<&mut Node, (With<XpBarFill>, Without<HealthBarFill>)>,
+    mut level_text_query: Query<&mut Text, With<LevelText>>,
 ) {
     let Ok((health, stats)) = player_query.single() else {
         return;
     };
 
-    let hp_pct = (health.0 / PLAYER_MAX_HEALTH * 100.0).clamp(0.0, 100.0);
+    let hp_pct = (health.0 / stats.max_health * 100.0).clamp(0.0, 100.0);
     let xp_pct = (stats.current_xp / stats.required_xp * 100.0).clamp(0.0, 100.0);
 
     if let Ok(mut node) = hp_query.single_mut() {
@@ -129,6 +146,9 @@ pub fn update_hud(
     }
     if let Ok(mut node) = xp_query.single_mut() {
         node.width = Val::Percent(xp_pct);
+    }
+    if let Ok(mut text) = level_text_query.single_mut() {
+        **text = format!("Lv {}", stats.level);
     }
 }
 
