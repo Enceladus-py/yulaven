@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use rand::Rng;
 
 use super::components::{Enemy, EnemyKind, EnemyStats};
-use crate::core::components::Health;
+use crate::core::components::{DespawnNextFrame, Health};
 use crate::player::components::Player;
 
 const AGGRO_RADIUS: f32 = 700.0;
@@ -193,7 +193,7 @@ pub fn move_enemies(
 
         // Despawn if too far from player
         if distance > DESPAWN_RADIUS {
-            commands.entity(entity).despawn();
+            commands.entity(entity).insert(DespawnNextFrame);
         }
     }
 }

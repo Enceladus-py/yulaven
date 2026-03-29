@@ -1,3 +1,4 @@
+use crate::core::components::DespawnNextFrame;
 use crate::{
     GameState,
     player::components::{Player, PlayerStats},
@@ -80,17 +81,17 @@ pub fn handle_restart(
             next_state.set(GameState::Playing);
 
             for entity in &menu_query {
-                commands.entity(entity).despawn();
+                commands.entity(entity).insert(DespawnNextFrame);
             }
 
             for entity in &enemy_query {
-                commands.entity(entity).despawn();
+                commands.entity(entity).insert(DespawnNextFrame);
             }
             for entity in &gem_query {
-                commands.entity(entity).despawn();
+                commands.entity(entity).insert(DespawnNextFrame);
             }
             for entity in &spell_query {
-                commands.entity(entity).despawn();
+                commands.entity(entity).insert(DespawnNextFrame);
             }
 
             if let Ok((mut player, mut health, mut stats, mut transform)) =

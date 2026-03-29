@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 use super::components::{ExperienceGem, Structure, TerrainTile};
+use crate::core::components::DespawnNextFrame;
 use crate::player::components::Player;
 use crate::player::components::{LevelUpEvent, PlayerStats};
 
@@ -138,7 +139,7 @@ pub fn collect_gems(
 
             if distance < collect_radius {
                 player_stats.current_xp += gem.amount;
-                commands.entity(gem_entity).despawn();
+                commands.entity(gem_entity).insert(DespawnNextFrame);
 
                 if player_stats.current_xp >= player_stats.required_xp {
                     player_stats.level += 1;

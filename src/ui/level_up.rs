@@ -1,6 +1,6 @@
 use crate::{
     GameState,
-    core::components::Health,
+    core::components::{DespawnNextFrame, Health},
     player::components::{LevelUpEvent, Player, PlayerStats},
 };
 use bevy::prelude::*;
@@ -210,7 +210,7 @@ pub fn handle_skill_selection(
             next_state.set(GameState::Playing);
 
             for entity in &menu_query {
-                commands.entity(entity).despawn();
+                commands.entity(entity).insert(DespawnNextFrame);
             }
         }
     }

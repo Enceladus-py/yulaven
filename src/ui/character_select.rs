@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 use crate::GameState;
+use crate::core::components::DespawnNextFrame;
 use crate::player::character::SelectedCharacter;
 
 #[derive(Component)]
@@ -182,7 +183,7 @@ pub fn handle_character_select(
             next_state.set(GameState::Playing);
 
             for entity in &menu_query {
-                commands.entity(entity).despawn();
+                commands.entity(entity).insert(DespawnNextFrame);
             }
         }
     }

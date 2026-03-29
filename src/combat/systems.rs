@@ -10,7 +10,7 @@ use crate::{
         FIREBALL_SPEED_FACTOR, FIREBALL_START_SPEED, INVINCIBILITY_DURATION, KNOCKBACK_DURATION,
         KNOCKBACK_SPEED, ORB_SPEED,
     },
-    core::components::{Health, MainCamera},
+    core::components::{DespawnNextFrame, Health, MainCamera},
     enemy::components::{DamageFlash, Enemy, EnemyKind, EnemyStats},
     map::components::ExperienceGem,
     player::components::{Player, PlayerAnimation, PlayerStats},
@@ -280,7 +280,7 @@ pub fn move_fireballs(
             continue;
         };
         if fb_transform.translation.distance(pl_transform.translation) > 1000.0 {
-            commands.entity(fireball_entity).despawn();
+            commands.entity(fireball_entity).insert(DespawnNextFrame);
         }
     }
 }
@@ -314,7 +314,7 @@ pub fn move_orbs(
         orb_transform.translation += orb.direction.extend(0.0) * ORB_SPEED * time.delta_secs();
 
         if orb_transform.translation.distance(pl_transform.translation) > 1000.0 {
-            commands.entity(orb_entity).despawn();
+            commands.entity(orb_entity).insert(DespawnNextFrame);
         }
     }
 }
@@ -386,7 +386,7 @@ pub fn handle_spell_collisions(
 
             if distance < 30.0 {
                 enemy_health.0 -= spell.damage;
-                commands.entity(spell_entity).despawn();
+                commands.entity(spell_entity).insert(DespawnNextFrame);
 
                 let knockback_dir = (enemy_transform.translation - spell_transform.translation)
                     .truncate()
@@ -463,7 +463,7 @@ pub fn handle_death(
                 return;
             }
 
-            commands.entity(entity).despawn();
+            commands.entity(entity).insert(DespawnNextFrame);
 
             if opt_enemy.is_none() {
                 continue;

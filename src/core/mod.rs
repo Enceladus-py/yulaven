@@ -15,6 +15,13 @@ impl Plugin for CorePlugin {
             .add_systems(
                 OnExit(state::GameState::CharacterSelect),
                 setup::spawn_player,
-            );
+            )
+            .add_systems(Last, cleanup_despawns);
+    }
+}
+
+fn cleanup_despawns(mut commands: Commands, q: Query<Entity, With<components::DespawnNextFrame>>) {
+    for e in &q {
+        commands.entity(e).despawn();
     }
 }

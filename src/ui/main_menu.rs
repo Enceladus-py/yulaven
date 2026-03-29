@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
 use crate::GameState;
+use crate::core::components::DespawnNextFrame;
 
 #[derive(Component)]
 pub struct MainMenuUI;
@@ -79,7 +80,7 @@ pub fn handle_main_menu(
             next_state.set(GameState::CharacterSelect);
 
             for entity in &menu_query {
-                commands.entity(entity).despawn();
+                commands.entity(entity).insert(DespawnNextFrame);
             }
         }
     }

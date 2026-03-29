@@ -5,7 +5,7 @@ plugins {
 android {
     namespace 'com.beratdalsuna.yulaven'
     compileSdk 34
-    ndkVersion "29.0.14206865"
+    ndkVersion "26.1.10909125"
 
     defaultConfig {
         applicationId "com.beratdalsuna.yulaven"
