@@ -171,6 +171,10 @@ pub fn fire_fireballs(
     }
 }
 
+/// Fires orbs for characters that use orb-based attacks.
+///
+/// `Mage`: orbs charge up fireballs (handled in `fire_fireballs`)
+/// `Archer`: rapid auto-orbs targeting nearby enemies
 #[allow(clippy::too_many_arguments)]
 pub fn fire_orbs(
     time: Res<Time>,
@@ -181,9 +185,9 @@ pub fn fire_orbs(
         &mut PlayerAnimation,
         &mut Player,
         &PlayerStats,
+        &crate::player::character::ActiveAbility,
     )>,
-    asset_server: Res<AssetServer>,
-    mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
+    combat_assets: Res<CombatAssets>,
     enemy_query: Query<&Transform, With<Enemy>>,
     fireball_query: Query<Entity, With<Fireball>>,
     orb_query: Query<Entity, With<Orb>>,
@@ -192,7 +196,7 @@ pub fn fire_orbs(
     let Ok((camera, cam_gtf)) = camera_query.single() else {
         return;
     };
-    if let Ok((player_transform, sprite, mut animation, mut player, stats)) =
+    if let Ok((player_transform, sprite, mut animation, mut player, stats, ability)) =
         player_query.single_mut()
     {
         player.orb_timer.tick(time.delta());
@@ -210,57 +214,70 @@ pub fn fire_orbs(
             return;
         };
 
-        animation.first_frame = 60;
-        animation.last_frame = 64;
-        animation
-            .attack_timer
-            .set_duration(std::time::Duration::from_secs_f32(0.3));
-        animation.attack_timer.reset();
-
-        player.orb_charges = player.orb_charges.saturating_add(1);
-
         // Don't spawn more if too many projectiles already on screen
         if fireball_query.iter().count() + orb_query.iter().count() >= MAX_PROJECTILES {
             return;
         }
 
-        let texture_handle = asset_server.load("HumansProjectiles.png");
-        let texture_atlas = TextureAtlasLayout::from_grid(UVec2::splat(16), 5, 5, None, None);
-        let texture_atlas_handle = texture_atlases.add(texture_atlas);
+        // Character-specific behavior
+        match ability.kind {
+            crate::player::character::SelectedCharacter::Mage => {
+                // Mage: orb charges fireball, not direct orb attack
+                player.orb_charges = player.orb_charges.saturating_add(1);
+                animation.first_frame = 60;
+                animation.last_frame = 64;
+                animation
+                    .attack_timer
+                    .set_duration(std::time::Duration::from_secs_f32(0.3));
+                animation.attack_timer.reset();
+            }
+            crate::player::character::SelectedCharacter::Archer => {
+                // Archer: rapid auto-orbs targeting nearby enemies
+                animation.first_frame = 60;
+                animation.last_frame = 64;
+                animation
+                    .attack_timer
+                    .set_duration(std::time::Duration::from_secs_f32(0.3));
+                animation.attack_timer.reset();
 
-        let offset_x = if sprite.flip_x { -20.0 } else { 20.0 };
+                let offset_x = if sprite.flip_x { -20.0 } else { 20.0 };
+                let initial_direction = (enemy_transform.translation
+                    - player_transform.translation)
+                    .truncate()
+                    .normalize_or_zero();
 
-        let initial_direction = (enemy_transform.translation - player_transform.translation)
-            .truncate()
-            .normalize_or_zero();
-
-        commands.spawn((
-            Sprite {
-                image: texture_handle.clone(),
-                texture_atlas: Some(TextureAtlas {
-                    layout: texture_atlas_handle,
-                    index: 10,
-                }),
-                flip_x: sprite.flip_x,
-                ..Default::default()
-            },
-            Transform {
-                translation: player_transform.translation
-                    + Vec3 {
-                        x: offset_x,
-                        y: 0.0,
-                        z: 0.0,
+                commands.spawn((
+                    Sprite {
+                        image: combat_assets.projectile_image.clone(),
+                        texture_atlas: Some(TextureAtlas {
+                            layout: combat_assets.atlas_layout.clone(),
+                            index: 10,
+                        }),
+                        flip_x: sprite.flip_x,
+                        ..Default::default()
                     },
-                scale: Vec3::splat(4.0),
-                ..Default::default()
-            },
-            Orb {
-                direction: initial_direction,
-            },
-            Spell {
-                damage: 15.0 * stats.damage_multiplier,
-            },
-        ));
+                    Transform {
+                        translation: player_transform.translation
+                            + Vec3 {
+                                x: offset_x,
+                                y: 0.0,
+                                z: 0.0,
+                            },
+                        scale: Vec3::splat(4.0),
+                        ..Default::default()
+                    },
+                    Orb {
+                        direction: initial_direction,
+                    },
+                    Spell {
+                        damage: 12.0 * stats.damage_multiplier,
+                    },
+                ));
+            }
+            crate::player::character::SelectedCharacter::Warlock => {
+                // Warlock: melee drain, no orbs
+            }
+        }
     }
 }
 
@@ -510,6 +527,92 @@ fn nearest_visible_enemy<'a>(
             let db = b.translation.distance_squared(origin);
             da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
         })
+}
+
+/// Warlock melee drain: damages nearby enemies within melee range periodically
+#[allow(clippy::type_complexity)]
+pub fn warlock_melee_drain(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut player_query: Query<(
+        &Transform,
+        &mut Player,
+        &PlayerStats,
+        &crate::player::character::ActiveAbility,
+    )>,
+    mut enemy_query: Query<(Entity, &Transform, &mut Health), With<Enemy>>,
+) {
+    let Ok((player_transform, mut player, stats, ability)) = player_query.single_mut() else {
+        return;
+    };
+
+    // Only for Warlock
+    if ability.kind != crate::player::character::SelectedCharacter::Warlock {
+        return;
+    }
+
+    player.orb_timer.tick(time.delta());
+    if !player.orb_timer.just_finished() {
+        return;
+    }
+
+    let melee_range = stats.attack_range; // 80 for Warlock
+
+    for (enemy_entity, enemy_transform, mut enemy_health) in &mut enemy_query {
+        let distance = player_transform
+            .translation
+            .distance(enemy_transform.translation);
+
+        if distance < melee_range {
+            enemy_health.0 -= 20.0 * stats.damage_multiplier;
+
+            // Visual feedback: damage flash
+            commands.entity(enemy_entity).try_insert((
+                DamageFlash(Timer::from_seconds(DAMAGE_FLASH_DURATION, TimerMode::Once)),
+                Knockback {
+                    velocity: (enemy_transform.translation - player_transform.translation)
+                        .truncate()
+                        .normalize_or_zero()
+                        * ENEMY_KNOCKBACK_SPEED,
+                    timer: Timer::from_seconds(ENEMY_KNOCKBACK_DURATION, TimerMode::Once),
+                },
+            ));
+        }
+    }
+}
+
+/// Warlock life drain passive: heals player on every enemy kill
+#[allow(clippy::type_complexity)]
+pub fn warlock_life_drain(
+    _commands: Commands,
+    _query: Query<(Entity, &Health, Option<&Player>)>,
+    mut player_query: Query<
+        (Entity, &mut Health),
+        (With<crate::player::components::Player>, Without<Enemy>),
+    >,
+    enemy_query: Query<(Entity, &Health), With<Enemy>>,
+    ability_query: Query<&crate::player::character::ActiveAbility>,
+) {
+    let Ok((player_entity, mut player_health)) = player_query.single_mut() else {
+        return;
+    };
+
+    let Ok(ability) = ability_query.get(player_entity) else {
+        return;
+    };
+
+    // Only for Warlock
+    if ability.kind != crate::player::character::SelectedCharacter::Warlock {
+        return;
+    }
+
+    // Check for dead enemies and heal before they despawn
+    for (_enemy_entity, enemy_health) in &enemy_query {
+        if enemy_health.0 <= 0.0 {
+            // Heal the player (life drain: 1 HP per kill)
+            player_health.0 = (player_health.0 + 1.0).min(150.0); // Cap at Warlock's max health
+        }
+    }
 }
 
 pub fn handle_damage_flash(

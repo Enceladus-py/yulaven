@@ -28,6 +28,9 @@ impl Plugin for CombatPlugin {
                     systems::handle_spell_collisions,
                     systems::handle_enemy_player_collisions,
                     systems::handle_death,
+                    // Warlock melee drain
+                    systems::warlock_melee_drain,
+                    systems::warlock_life_drain,
                     // Nova
                     nova::trigger_nova,
                     nova::apply_nova,

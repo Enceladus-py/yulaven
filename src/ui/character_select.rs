@@ -12,7 +12,7 @@ pub struct CharacterSelectButton {
     pub character: SelectedCharacter,
 }
 
-pub fn spawn_character_select(mut commands: Commands) {
+pub fn spawn_character_select(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
         .spawn((
             Node {
@@ -29,7 +29,7 @@ pub fn spawn_character_select(mut commands: Commands) {
             CharacterSelectMenu,
         ))
         .with_children(|root| {
-            // ── Title ────────────────────────────────────────────────────────
+            // Title
             root.spawn((
                 Text::new("YULAVEN"),
                 TextFont {
@@ -55,7 +55,7 @@ pub fn spawn_character_select(mut commands: Commands) {
                 },
             ));
 
-            // ── Cards row ────────────────────────────────────────────────────
+            // Cards row
             root.spawn(Node {
                 flex_direction: FlexDirection::Row,
                 column_gap: Val::VMin(3.0),
@@ -63,28 +63,37 @@ pub fn spawn_character_select(mut commands: Commands) {
                 ..Default::default()
             })
             .with_children(|row| {
-                spawn_hero_card(row, SelectedCharacter::Mage);
-                spawn_hero_card(row, SelectedCharacter::Archer);
-                spawn_hero_card(row, SelectedCharacter::Warlock);
+                spawn_hero_card(row, SelectedCharacter::Mage, &asset_server);
+                spawn_hero_card(row, SelectedCharacter::Archer, &asset_server);
+                spawn_hero_card(row, SelectedCharacter::Warlock, &asset_server);
             });
         });
 }
 
-fn spawn_hero_card(parent: &mut ChildSpawnerCommands, character: SelectedCharacter) {
-    let accent = character.accent_color();
-    let bg = character.card_color();
+fn spawn_hero_card(
+    parent: &mut ChildSpawnerCommands,
+    character: SelectedCharacter,
+    asset_server: &AssetServer,
+) {
+    let def = character.definition();
+    let accent = def.accent_color;
+    let bg = def.card_color;
+
+    // Load the character sprite (no-outline version for cleaner UI)
+    let sprite_path = def.sprite_path.replace("outline/", "no-outline/");
+    let sprite_handle = asset_server.load(&sprite_path);
 
     parent
         .spawn((
             Button,
             Node {
-                width: Val::VMin(26.0),
+                width: Val::VMin(22.0),
                 flex_direction: FlexDirection::Column,
                 align_items: AlignItems::Center,
-                padding: UiRect::all(Val::VMin(2.5)),
+                padding: UiRect::all(Val::VMin(2.0)),
                 border: UiRect::all(Val::Px(3.0)),
-                border_radius: BorderRadius::all(Val::VMin(3.0)),
-                row_gap: Val::VMin(1.5),
+                border_radius: BorderRadius::all(Val::VMin(2.0)),
+                row_gap: Val::VMin(1.0),
                 ..Default::default()
             },
             BorderColor::all(accent),
@@ -92,73 +101,49 @@ fn spawn_hero_card(parent: &mut ChildSpawnerCommands, character: SelectedCharact
             CharacterSelectButton { character },
         ))
         .with_children(|card| {
-            // Portrait placeholder — colored circle
+            // Character sprite preview
             card.spawn((
+                ImageNode {
+                    image: sprite_handle,
+                    ..Default::default()
+                },
                 Node {
                     width: Val::VMin(10.0),
                     height: Val::VMin(10.0),
-                    border_radius: BorderRadius::all(Val::Percent(50.0)),
-                    border: UiRect::all(Val::Px(3.0)),
-                    margin: UiRect::bottom(Val::VMin(1.0)),
                     ..Default::default()
                 },
-                BorderColor::all(accent),
-                BackgroundColor(accent),
             ));
 
             // Name
             card.spawn((
-                Text::new(character.display_name()),
+                Text::new(def.display_name),
                 TextFont {
-                    font_size: 22.0,
+                    font_size: 20.0,
                     ..Default::default()
                 },
                 TextColor(accent),
             ));
 
-            // Passive
+            // Health indicator
             card.spawn((
-                Text::new(format!("- {}", character.passive_description())),
+                Text::new(character.health_indicator()),
                 TextFont {
-                    font_size: 12.0,
+                    font_size: 14.0,
                     ..Default::default()
                 },
-                TextColor(Color::srgb(0.75, 0.75, 0.85)),
-                Node {
-                    margin: UiRect::top(Val::VMin(0.5)),
-                    ..Default::default()
-                },
+                TextColor(Color::srgb(0.9, 0.3, 0.3)),
             ));
 
-            // Active
+            // One-line ability description
             card.spawn((
-                Text::new(format!("> {}", character.active_description())),
-                TextFont {
-                    font_size: 12.0,
-                    ..Default::default()
-                },
-                TextColor(Color::srgb(0.85, 0.75, 0.4)),
-                Node {
-                    margin: UiRect::top(Val::VMin(0.5)),
-                    ..Default::default()
-                },
-            ));
-
-            // CTA hint at card bottom
-            card.spawn((
-                Text::new("TAP TO SELECT"),
+                Text::new(def.passive_description),
                 TextFont {
                     font_size: 10.0,
                     ..Default::default()
                 },
-                TextColor(Color::srgba(
-                    accent.to_srgba().red,
-                    accent.to_srgba().green,
-                    accent.to_srgba().blue,
-                    0.6,
-                )),
+                TextColor(Color::srgb(0.7, 0.7, 0.8)),
                 Node {
-                    margin: UiRect::top(Val::VMin(1.5)),
+                    margin: UiRect::top(Val::VMin(0.5)),
                     ..Default::default()
                 },
             ));

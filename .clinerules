@@ -1,0 +1,43 @@
+# Project Rules for arcane-survivors
+
+## Code Quality
+
+### Always run these before completing tasks:
+```bash
+cargo fmt
+cargo clippy 2>&1
+cargo check 2>&1
+```
+Fix ALL warnings and errors before marking a task complete.
+
+## Git Conventional Commits
+
+### Format: `type(scope): description`
+
+**Types:**
+- `feat` — new features
+- `fix` — bug fixes
+- `chore` — maintenance tasks
+- `refactor` — code refactoring
+- `docs` — documentation changes
+
+**Scope examples:**
+- `feat(ui): ...` — UI changes
+- `feat(player): ...` — player system
+- `feat(combat): ...` — combat system
+- `fix(android): ...` — Android-specific fixes
+- `feat(core): ...` — core game logic
+
+**Rules:**
+- Description in lowercase
+- No period at the end
+- Use imperative mood ("add" not "added")
+- Keep it concise
+
+## Architecture Notes
+
+- This is a Bevy ECS game (Rust)
+- Characters are defined in `src/player/character.rs`
+- Combat systems are in `src/combat/systems.rs`
+- UI is in `src/ui/`
+- Each character has unique sprites, stats, attacks, and abilities
