@@ -1,50 +1,7 @@
-use bevy::{
-    prelude::*,
-    time::{Timer, TimerMode},
-};
+use bevy::prelude::*;
 
-/// The hero the player has selected. Set on the character-select screen,
-/// read during `OnEnter(Playing)` to configure the player entity.
-#[derive(Resource, Clone, Copy, PartialEq, Eq, Default)]
-pub enum SelectedCharacter {
-    #[default]
-    Mage,
-    Archer,
-    Warlock,
-}
-
-/// Defines the attack behavior for a character.
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum AttackType {
-    /// Mage: charges orbs → fires homing fireball
-    ChargedFireball,
-    /// Archer: rapid auto-orbs targeting nearby enemies
-    RapidOrbs,
-    /// Warlock: close-range melee drain, no projectile
-    MeleeDrain,
-}
-
-/// Defines the passive ability for a character.
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum PassiveAbility {
-    /// Mage: collect orb charges, fire fireball at 5 charges
-    OrbCharge,
-    /// Archer: continuous rapid orb attacks (always active)
-    RapidFire,
-    /// Warlock: heal on every enemy kill
-    LifeDrain,
-}
-
-/// Defines the active ability for a character.
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum ActiveAbilityKind {
-    /// Mage: teleport forward
-    Blink,
-    /// Archer: fire 8 orbs in a ring
-    ArrowRain,
-    /// Warlock: `AoE` damage + self heal
-    VoidNova,
-}
+use super::abilities::{ActiveAbilityKind, AttackType, PassiveAbility};
+use super::selected::SelectedCharacter;
 
 /// Complete character definition with all stats and configurations.
 pub struct CharacterDefinition {
@@ -138,64 +95,6 @@ impl CharacterDefinition {
             SelectedCharacter::Mage => Self::MAGE,
             SelectedCharacter::Archer => Self::ARCHER,
             SelectedCharacter::Warlock => Self::WARLOCK,
-        }
-    }
-}
-
-impl SelectedCharacter {
-    pub fn definition(self) -> CharacterDefinition {
-        CharacterDefinition::from_selected(self)
-    }
-
-    pub fn display_name(self) -> &'static str {
-        self.definition().display_name
-    }
-
-    pub fn passive_description(self) -> &'static str {
-        self.definition().passive_description
-    }
-
-    pub fn active_description(self) -> &'static str {
-        self.definition().active_description
-    }
-
-    pub fn accent_color(self) -> Color {
-        self.definition().accent_color
-    }
-
-    pub fn card_color(self) -> Color {
-        self.definition().card_color
-    }
-
-    pub fn active_cooldown_secs(self) -> f32 {
-        self.definition().active_cooldown_secs
-    }
-
-    /// Returns a simple health indicator string
-    pub fn health_indicator(self) -> &'static str {
-        match self {
-            SelectedCharacter::Warlock => "♥♥♥",
-            SelectedCharacter::Mage => "♥♥",
-            SelectedCharacter::Archer => "♥",
-        }
-    }
-}
-
-/// Component added to the player entity; tracks the active-ability cooldown.
-#[derive(Component)]
-pub struct ActiveAbility {
-    pub cooldown: Timer,
-    pub kind: SelectedCharacter,
-}
-
-impl ActiveAbility {
-    pub fn new(character: SelectedCharacter) -> Self {
-        let def = character.definition();
-        let mut t = Timer::from_seconds(def.active_cooldown_secs, TimerMode::Once);
-        t.tick(std::time::Duration::from_secs_f32(def.active_cooldown_secs));
-        Self {
-            cooldown: t,
-            kind: character,
         }
     }
 }

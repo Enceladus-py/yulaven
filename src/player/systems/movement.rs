@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use super::components::{Player, PlayerAnimation, PlayerStats};
+use super::super::components::{Player, PlayerAnimation, PlayerStats};
 use crate::map::components::{Collider, Structure};
 use crate::ui::JoystickInput;
 use crate::{
@@ -8,7 +8,7 @@ use crate::{
     core::components::MainCamera,
 };
 
-// Player movement system
+/// System for moving the player based on keyboard and joystick input.
 #[allow(clippy::type_complexity)]
 pub fn move_player(
     keyboard_input: Res<ButtonInput<KeyCode>>,
@@ -117,89 +117,6 @@ pub fn move_player(
         if let Ok(mut camera_transform) = camera_query.single_mut() {
             camera_transform.translation.x = player_transform.translation.x;
             camera_transform.translation.y = player_transform.translation.y;
-        }
-    }
-}
-
-pub fn animate_player(
-    time: Res<Time>,
-    mut pl_query: Query<(&mut Sprite, &mut PlayerAnimation, &mut Player)>,
-) {
-    for (mut sprite, mut animation, player) in &mut pl_query {
-        animation.timer.tick(time.delta());
-        animation.attack_timer.tick(time.delta());
-        if animation.timer.just_finished() {
-            if let Some(ref mut atlas) = sprite.texture_atlas {
-                atlas.index =
-                    if atlas.index >= animation.last_frame || atlas.index < animation.first_frame {
-                        animation.first_frame
-                    } else {
-                        atlas.index + 1
-                    };
-            }
-
-            if player.facing_direction.x < -0.1 {
-                sprite.flip_x = true;
-            } else if player.facing_direction.x > 0.1 {
-                sprite.flip_x = false;
-            }
-        }
-    }
-}
-
-pub fn handle_teleportation(
-    mut commands: Commands,
-    mut pl_query: Query<(
-        Entity,
-        &mut Transform,
-        &mut crate::player::components::Teleporting,
-    )>,
-    time: Res<Time>,
-) {
-    for (entity, mut transform, mut teleporting) in &mut pl_query {
-        teleporting.timer.tick(time.delta());
-        let t = teleporting.timer.fraction();
-
-        let new_pos = teleporting
-            .original_translation
-            .lerp(teleporting.target_translation, t);
-        transform.translation.x = new_pos.x;
-        // Keep the original z coordinate if it had one, though translation is Vec3
-        transform.translation.y = new_pos.y;
-
-        if teleporting.timer.just_finished() {
-            commands
-                .entity(entity)
-                .remove::<crate::player::components::Teleporting>();
-        }
-    }
-}
-
-pub fn animate_dash_trail(
-    mut commands: Commands,
-    mut query: Query<(
-        Entity,
-        &mut crate::player::components::DashTrail,
-        &mut Sprite,
-    )>,
-    time: Res<Time>,
-) {
-    for (entity, mut trail, mut sprite) in &mut query {
-        trail.lifetime.tick(time.delta());
-
-        let t = trail.lifetime.fraction(); // 0.0 to 1.0
-        let alpha = (1.0 - t) * 0.85; // start at 0.85, fade out
-
-        // Scale thickness down as it fades
-        let thickness = 24.0 * (1.0 - t);
-        if let Some(size) = sprite.custom_size.as_mut() {
-            size.y = thickness;
-        }
-
-        sprite.color.set_alpha(alpha);
-
-        if trail.lifetime.is_finished() {
-            commands.entity(entity).despawn();
         }
     }
 }

@@ -1,8 +1,13 @@
 use bevy::prelude::*;
 
+pub mod assets;
+pub mod collision;
 pub mod components;
+pub mod death;
+pub mod effects;
 pub mod nova;
-pub mod systems;
+pub mod projectiles;
+pub mod warlock;
 
 pub struct CombatPlugin;
 
@@ -12,25 +17,29 @@ impl Plugin for CombatPlugin {
             .init_resource::<nova::NovaCooldown>()
             .add_systems(
                 OnExit(crate::GameState::CharacterSelect),
-                systems::setup_combat_assets,
+                assets::setup_combat_assets,
             )
             .add_systems(
                 Update,
                 (
-                    systems::fire_fireballs,
-                    systems::fire_orbs,
-                    systems::move_fireballs,
-                    systems::move_orbs,
-                    systems::animate_spell,
-                    systems::apply_knockback,
-                    systems::handle_invincibility,
-                    systems::handle_damage_flash,
-                    systems::handle_spell_collisions,
-                    systems::handle_enemy_player_collisions,
-                    systems::handle_death,
-                    // Warlock melee drain
-                    systems::warlock_melee_drain,
-                    systems::warlock_life_drain,
+                    // Projectiles
+                    projectiles::fire_fireballs,
+                    projectiles::fire_orbs,
+                    projectiles::move_fireballs,
+                    projectiles::move_orbs,
+                    assets::animate_spell,
+                    // Effects
+                    effects::apply_knockback,
+                    effects::handle_invincibility,
+                    effects::handle_damage_flash,
+                    // Collisions
+                    collision::handle_spell_collisions,
+                    collision::handle_enemy_player_collisions,
+                    // Death
+                    death::handle_death,
+                    // Warlock
+                    warlock::warlock_melee_drain,
+                    warlock::warlock_life_drain,
                     // Nova
                     nova::trigger_nova,
                     nova::apply_nova,

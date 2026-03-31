@@ -46,3 +46,12 @@ pub struct Knockback {
     pub velocity: Vec2,
     pub timer: Timer,
 }
+
+#[derive(Component)]
+pub struct DamageFlash(pub Timer);
+
+/// Experience gem dropped by enemies on death.
+#[derive(Component)]
+pub struct ExperienceGem {
+    pub amount: f32,
+}
