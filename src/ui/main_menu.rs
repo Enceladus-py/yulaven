@@ -98,7 +98,7 @@ pub fn spawn_main_menu(
                     border_radius: BorderRadius::all(Val::VMin(1.5)),
                     ..Default::default()
                 },
-                BorderColor::all(Color::srgba(0.9, 0.7, 0.3, 0.9)),   // Shimmering Gold
+                BorderColor::all(Color::srgba(0.9, 0.7, 0.3, 0.9)), // Shimmering Gold
                 BackgroundColor(Color::srgba(0.12, 0.04, 0.22, 0.95)), // Dark Arcane Purple
                 BoxShadow(vec![ShadowStyle {
                     color: Color::srgba(0.8, 0.2, 1.0, 0.95), // Initial Magenta Pulse
@@ -144,16 +144,16 @@ pub fn check_menu_exit(
     menu_sprite_query: Query<Entity, With<MainMenuSprite>>,
     mut commands: Commands,
 ) {
-    if let Some(start) = exit_time.0 {
-        if time.elapsed_secs() - start > 0.6 {
-            next_state.set(GameState::CharacterSelect);
+    if let Some(start) = exit_time.0
+        && time.elapsed_secs() - start > 0.6
+    {
+        next_state.set(GameState::CharacterSelect);
 
-            for entity in &menu_ui_query {
-                commands.entity(entity).insert(DespawnNextFrame);
-            }
-            for entity in &menu_sprite_query {
-                commands.entity(entity).insert(DespawnNextFrame);
-            }
+        for entity in &menu_ui_query {
+            commands.entity(entity).insert(DespawnNextFrame);
+        }
+        for entity in &menu_sprite_query {
+            commands.entity(entity).insert(DespawnNextFrame);
         }
     }
 }
@@ -192,8 +192,8 @@ pub fn highlight_play_button(
             ),
             Interaction::None => (
                 BackgroundColor(Color::srgba(0.12, 0.04, 0.22, 0.95)), // Base Purple
-                BorderColor::all(Color::srgba(0.8, 0.6, 0.25, 0.85)), // Muted Gold
-                Vec3::splat(1.0 + pulse * 0.03),                     // "Breath" pulse
+                BorderColor::all(Color::srgba(0.8, 0.6, 0.25, 0.85)),  // Muted Gold
+                Vec3::splat(1.0 + pulse * 0.03),                       // "Breath" pulse
                 // Mix between Magenta and Gold for the pulse
                 Color::srgba(
                     0.6 + pulse * 0.4, // Shift towards Gold (1.0)
