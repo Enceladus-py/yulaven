@@ -117,6 +117,7 @@ pub fn fire_orbs(
 }
 
 /// System for moving orbs with homing behavior.
+#[allow(clippy::type_complexity)]
 pub fn move_orbs(
     mut commands: Commands,
     mut orb_query: Query<(Entity, &mut Transform, &mut Orb)>,

@@ -103,4 +103,4 @@ pub struct Enemy {
 }
 
 #[derive(Component)]
-pub struct DamageFlash(pub Timer);
+pub struct DamageFlash(#[allow(dead_code)] pub Timer);

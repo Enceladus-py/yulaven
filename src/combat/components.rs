@@ -53,5 +53,6 @@ pub struct DamageFlash(pub Timer);
 /// Experience gem dropped by enemies on death.
 #[derive(Component)]
 pub struct ExperienceGem {
+    #[allow(dead_code)]
     pub amount: f32,
 }

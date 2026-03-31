@@ -1,6 +1,7 @@
 pub const PLAYER_SPEED: f32 = 500.0;
 pub const FIREBALL_START_SPEED: f32 = 1.0;
 pub const FIREBALL_SPEED_FACTOR: f32 = 200.0;
+#[allow(dead_code)]
 pub const ORB_SPEED: f32 = 600.0;
 pub const KNOCKBACK_SPEED: f32 = 400.0;
 pub const KNOCKBACK_DURATION: f32 = 0.15;
