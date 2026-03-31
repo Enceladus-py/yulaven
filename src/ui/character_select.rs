@@ -219,18 +219,17 @@ fn spawn_character_row(
     let accent = def.accent_color;
     let bg = def.card_color;
 
-    let sprite_path = def.sprite_path.replace("outline/", "no-outline/");
-    let sprite_handle = asset_server.load(&sprite_path);
+    let sprite_handle = asset_server.load(def.sprite_path);
 
     let atlas_layout = TextureAtlasLayout::from_grid(UVec2::splat(32), 12, 12, None, None);
     let atlas_handle = texture_atlases.add(atlas_layout);
 
-    // Row button - two columns: sprite + text, both centered
+    // Row button - two columns: sprite container + text, both centered
     parent
         .spawn((
             Button,
             Node {
-                width: Val::Percent(85.0),
+                width: Val::Percent(95.0),
                 flex_direction: FlexDirection::Row,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
@@ -245,34 +244,26 @@ fn spawn_character_row(
             CharacterRow { character },
         ))
         .with_children(|row| {
-            // Sprite container
-            row.spawn((Node {
-                width: Val::VMin(18.0),
-                height: Val::VMin(18.0),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                flex_shrink: 0.0,
-                ..Default::default()
-            },))
-                .with_children(|sprite_container| {
-                    sprite_container.spawn((
-                        ImageNode {
-                            image: sprite_handle,
-                            texture_atlas: Some(TextureAtlas {
-                                layout: atlas_handle,
-                                index: 0,
-                            }),
-                            ..Default::default()
-                        },
-                        Node {
-                            width: Val::VMin(16.0),
-                            height: Val::VMin(16.0),
-                            ..Default::default()
-                        },
-                    ));
-                });
+            // 1. Character sprite
+            row.spawn((
+                ImageNode {
+                    image: sprite_handle,
+                    texture_atlas: Some(TextureAtlas {
+                        layout: atlas_handle.clone(),
+                        index: 0,
+                    }),
+                    ..Default::default()
+                },
+                Node {
+                    // Explicit size to scale the pixel art up from its native resolution
+                    width: Val::Px(64.0),
+                    height: Val::Px(64.0),
+                    margin: UiRect::bottom(Val::Px(16.0)),
+                    ..Default::default()
+                },
+            ));
 
-            // Character name
+            // 2. Character name
             row.spawn((
                 Text::new(def.display_name),
                 TextFont {
@@ -281,6 +272,13 @@ fn spawn_character_row(
                     ..Default::default()
                 },
                 TextColor(accent),
+                Node {
+                    // Nudge the text down to fix the invisible padding built into pixel fonts
+                    margin: UiRect::top(Val::Px(6.0)),
+                    // Force an identical width on all buttons so flexbox centers them exactly the same way
+                    width: Val::Px(120.0),
+                    ..Default::default()
+                },
             ));
         });
 }
@@ -293,7 +291,7 @@ fn spawn_detail_panel(
     pixel_font: &Handle<Font>,
 ) {
     // Load default sprite
-    let sprite_path = "no-outline/MiniMage.png";
+    let sprite_path = "outline/MiniMage.png";
     let sprite_handle = asset_server.load(sprite_path);
     let atlas_layout = TextureAtlasLayout::from_grid(UVec2::splat(32), 12, 12, None, None);
     let atlas_handle = texture_atlases.add(atlas_layout);
@@ -526,9 +524,8 @@ pub fn handle_character_select(
             }
 
             // Update sprite
-            let sprite_path = def.sprite_path.replace("outline/", "no-outline/");
             for mut image in &mut sprite_query {
-                image.image = asset_server.load(&sprite_path);
+                image.image = asset_server.load(def.sprite_path);
             }
 
             // Show select button
