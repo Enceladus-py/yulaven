@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use super::super::components::{CombatAssets, Fireball, FireballAnimation, Orb, Spell};
+use super::super::components::{CombatAssets, Fireball, FireballAnimation, Projectile, Spell};
 use crate::{
     constant::FIREBALL_SPEED_FACTOR,
     core::components::{DespawnNextFrame, MainCamera},
@@ -78,7 +78,7 @@ pub fn fire_fireballs(
     combat_assets: Res<CombatAssets>,
     enemy_query: Query<&Transform, With<Enemy>>,
     fireball_query: Query<Entity, With<Fireball>>,
-    orb_query: Query<Entity, With<Orb>>,
+    projectile_query: Query<Entity, With<Projectile>>,
     camera_query: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
 ) {
     let Ok((camera, cam_gtf)) = camera_query.single() else {
@@ -115,7 +115,7 @@ pub fn fire_fireballs(
         let spawn_pos_vec2 = player_pos + (direction * spawn_offset_dist);
         let fireball_spawn_pos = spawn_pos_vec2.extend(player_transform.translation.z);
 
-        if fireball_query.iter().count() + orb_query.iter().count() >= MAX_PROJECTILES {
+        if fireball_query.iter().count() + projectile_query.iter().count() >= MAX_PROJECTILES {
             return;
         }
 

@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use super::character::{ActiveAbility, SelectedCharacter};
 use super::components::{Player, PlayerStats};
-use crate::combat::components::{Orb, Spell};
+use crate::combat::components::{Projectile, ProjectileKind, Spell};
 use crate::combat::nova::NovaEvent;
 use crate::core::components::Health;
 use crate::enemy::components::Enemy;
@@ -11,6 +11,47 @@ use crate::ui::JoystickInput;
 /// Marker for the active ability UI button.
 #[derive(Component)]
 pub struct ActiveAbilityButton;
+
+/// Spawns arrows for the Archer's Arrow Rain ability.
+fn spawn_arrow_rain(
+    commands: &mut Commands,
+    player_transform: &Transform,
+    stats: &PlayerStats,
+    asset_server: &AssetServer,
+    texture_atlases: &mut Assets<TextureAtlasLayout>,
+) {
+    let texture_handle = asset_server.load("HumansProjectiles.png");
+    let layout = TextureAtlasLayout::from_grid(UVec2::splat(16), 5, 5, None, None);
+    let layout_handle = texture_atlases.add(layout);
+
+    for i in 0..8_u16 {
+        let angle = std::f32::consts::TAU * (f32::from(i) / 8.0);
+        let dir = Vec2::new(angle.cos(), angle.sin());
+        commands.spawn((
+            Sprite {
+                image: texture_handle.clone(),
+                texture_atlas: Some(TextureAtlas {
+                    layout: layout_handle.clone(),
+                    index: 0,
+                }),
+                ..Default::default()
+            },
+            Transform {
+                translation: player_transform.translation,
+                rotation: Quat::from_rotation_z(angle),
+                scale: Vec3::splat(4.0),
+            },
+            Projectile {
+                direction: dir,
+                kind: ProjectileKind::Arrow,
+                speed: 500.0,
+            },
+            Spell {
+                damage: 20.0 * stats.damage_multiplier,
+            },
+        ));
+    }
+}
 
 /// Reads Space bar (PC) / on-screen button inputs. Dispatches the correct
 /// active ability based on the `ActiveAbility.kind` on the player.
@@ -116,34 +157,13 @@ pub fn trigger_active_ability(
         }
 
         SelectedCharacter::Archer => {
-            // Arrow Rain — fire 8 orbs evenly spaced around the player
-            let texture_handle = asset_server.load("HumansProjectiles.png");
-            let layout = TextureAtlasLayout::from_grid(UVec2::splat(16), 5, 5, None, None);
-            let layout_handle = texture_atlases.add(layout);
-
-            for i in 0..8_u16 {
-                let angle = std::f32::consts::TAU * (f32::from(i) / 8.0);
-                let dir = Vec2::new(angle.cos(), angle.sin());
-                commands.spawn((
-                    Sprite {
-                        image: texture_handle.clone(),
-                        texture_atlas: Some(TextureAtlas {
-                            layout: layout_handle.clone(),
-                            index: 10,
-                        }),
-                        ..Default::default()
-                    },
-                    Transform {
-                        translation: player_transform.translation,
-                        scale: Vec3::splat(4.0),
-                        ..Default::default()
-                    },
-                    Orb { direction: dir },
-                    Spell {
-                        damage: 20.0 * stats.damage_multiplier,
-                    },
-                ));
-            }
+            spawn_arrow_rain(
+                &mut commands,
+                &player_transform,
+                stats,
+                &asset_server,
+                &mut texture_atlases,
+            );
         }
 
         SelectedCharacter::Warlock => {

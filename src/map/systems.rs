@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
-use super::components::{ExperienceGem, Structure, TerrainTile};
+use super::components::{Structure, TerrainTile};
+use crate::combat::components::ExperienceGem;
 use crate::core::components::DespawnNextFrame;
 use crate::player::components::Player;
 use crate::player::components::{LevelUpEvent, PlayerStats};

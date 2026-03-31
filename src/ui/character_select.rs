@@ -12,7 +12,11 @@ pub struct CharacterSelectButton {
     pub character: SelectedCharacter,
 }
 
-pub fn spawn_character_select(mut commands: Commands, asset_server: Res<AssetServer>) {
+pub fn spawn_character_select(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
+) {
     commands
         .spawn((
             Node {
@@ -63,9 +67,24 @@ pub fn spawn_character_select(mut commands: Commands, asset_server: Res<AssetSer
                 ..Default::default()
             })
             .with_children(|row| {
-                spawn_hero_card(row, SelectedCharacter::Mage, &asset_server);
-                spawn_hero_card(row, SelectedCharacter::Archer, &asset_server);
-                spawn_hero_card(row, SelectedCharacter::Warlock, &asset_server);
+                spawn_hero_card(
+                    row,
+                    SelectedCharacter::Mage,
+                    &asset_server,
+                    &mut texture_atlases,
+                );
+                spawn_hero_card(
+                    row,
+                    SelectedCharacter::Archer,
+                    &asset_server,
+                    &mut texture_atlases,
+                );
+                spawn_hero_card(
+                    row,
+                    SelectedCharacter::Warlock,
+                    &asset_server,
+                    &mut texture_atlases,
+                );
             });
         });
 }
@@ -74,6 +93,7 @@ fn spawn_hero_card(
     parent: &mut ChildSpawnerCommands,
     character: SelectedCharacter,
     asset_server: &AssetServer,
+    texture_atlases: &mut Assets<TextureAtlasLayout>,
 ) {
     let def = character.definition();
     let accent = def.accent_color;
@@ -82,6 +102,10 @@ fn spawn_hero_card(
     // Load the character sprite (no-outline version for cleaner UI)
     let sprite_path = def.sprite_path.replace("outline/", "no-outline/");
     let sprite_handle = asset_server.load(&sprite_path);
+
+    // Create a texture atlas matching the 12x12 grid of 32x32 frames
+    let atlas_layout = TextureAtlasLayout::from_grid(UVec2::splat(32), 12, 12, None, None);
+    let atlas_handle = texture_atlases.add(atlas_layout);
 
     parent
         .spawn((
@@ -101,10 +125,14 @@ fn spawn_hero_card(
             CharacterSelectButton { character },
         ))
         .with_children(|card| {
-            // Character sprite preview
+            // Character sprite preview - show only first frame (idle facing right)
             card.spawn((
                 ImageNode {
                     image: sprite_handle,
+                    texture_atlas: Some(TextureAtlas {
+                        layout: atlas_handle,
+                        index: 0,
+                    }),
                     ..Default::default()
                 },
                 Node {

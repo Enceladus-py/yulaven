@@ -27,10 +27,22 @@ pub struct FireballAnimation {
     pub first_frame: usize,
 }
 
+/// Type of projectile (determines sprite and behavior).
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum ProjectileKind {
+    /// Homing orb (Mage)
+    Orb,
+    /// Straight-flying arrow (Archer)
+    Arrow,
+}
+
+/// Unified projectile component (orbs and arrows share movement logic).
 #[derive(Component)]
 #[require(Sprite, Transform)]
-pub struct Orb {
+pub struct Projectile {
     pub direction: Vec2,
+    pub kind: ProjectileKind,
+    pub speed: f32,
 }
 
 #[derive(Component, Default)]

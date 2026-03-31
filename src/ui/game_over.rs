@@ -67,7 +67,7 @@ pub fn handle_restart(
     menu_query: Query<Entity, With<GameOverMenu>>,
     mut commands: Commands,
     enemy_query: Query<Entity, With<crate::enemy::components::Enemy>>,
-    gem_query: Query<Entity, With<crate::map::components::ExperienceGem>>,
+    gem_query: Query<Entity, With<crate::combat::components::ExperienceGem>>,
     spell_query: Query<Entity, With<crate::combat::components::Spell>>,
     mut player_query: Query<(
         &mut Player,

@@ -26,7 +26,7 @@ impl Plugin for CombatPlugin {
                     projectiles::fire_fireballs,
                     projectiles::fire_orbs,
                     projectiles::move_fireballs,
-                    projectiles::move_orbs,
+                    projectiles::move_projectiles,
                     assets::animate_spell,
                     // Effects
                     effects::apply_knockback,
