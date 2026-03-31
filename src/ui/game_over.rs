@@ -5,13 +5,15 @@ use crate::{
 };
 use bevy::prelude::*;
 
+const PIXEL_FONT_PATH: &str = "fonts/press_start_2p.ttf";
+
 #[derive(Component)]
 pub struct GameOverMenu;
 
 #[derive(Component)]
 pub struct RestartButton;
 
-pub fn spawn_gameover_menu(mut commands: Commands) {
+pub fn spawn_gameover_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
         .spawn((
             Node {
@@ -28,6 +30,7 @@ pub fn spawn_gameover_menu(mut commands: Commands) {
             parent.spawn((
                 Text::new("GAME OVER"),
                 TextFont {
+                    font: asset_server.load(PIXEL_FONT_PATH),
                     font_size: 60.0,
                     ..Default::default()
                 },
@@ -52,6 +55,7 @@ pub fn spawn_gameover_menu(mut commands: Commands) {
                     button.spawn((
                         Text::new("Restart"),
                         TextFont {
+                            font: asset_server.load(PIXEL_FONT_PATH),
                             font_size: 30.0,
                             ..Default::default()
                         },

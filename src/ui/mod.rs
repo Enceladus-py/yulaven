@@ -15,6 +15,10 @@ pub use joystick::JoystickInput;
 pub use level_up::*;
 pub use map_ui::*;
 
+/// Shared resource holding the pixel font used across all UI screens.
+#[derive(Resource)]
+pub struct PixelFont(pub Handle<Font>);
+
 pub struct UiPlugin;
 
 impl Plugin for UiPlugin {

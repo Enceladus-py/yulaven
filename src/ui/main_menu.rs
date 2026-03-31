@@ -2,6 +2,9 @@ use bevy::prelude::*;
 
 use crate::GameState;
 use crate::core::components::DespawnNextFrame;
+use crate::ui::PixelFont;
+
+const PIXEL_FONT_PATH: &str = "fonts/press_start_2p.ttf";
 
 #[derive(Component)]
 pub struct MainMenuUI;
@@ -25,6 +28,8 @@ pub fn spawn_main_menu(
 ) {
     let logo_handle = asset_server.load("ui/yulaven_lantern_sprites.png");
     let title_handle = asset_server.load("ui/yulaven_title.png");
+    let font_handle = asset_server.load(PIXEL_FONT_PATH);
+    commands.insert_resource(PixelFont(font_handle));
 
     // 4x2 grid on a 1024x1024 sheet -> each frame is 256x512
     let layout = TextureAtlasLayout::from_grid(UVec2::new(256, 512), 4, 2, None, None);
@@ -114,8 +119,8 @@ pub fn spawn_main_menu(
                 btn.spawn((
                     Text::new("PLAY"),
                     TextFont {
+                        font: asset_server.load(PIXEL_FONT_PATH),
                         font_size: 28.0,
-                        weight: FontWeight::BOLD,
                         ..Default::default()
                     },
                     TextColor(Color::WHITE),

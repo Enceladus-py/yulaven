@@ -56,8 +56,8 @@ pub fn build_mobile_hud(
             root.spawn((
                 Text::new("Lv 1"),
                 TextFont {
+                    font: asset_server.load("fonts/press_start_2p.ttf"),
                     font_size: 20.0,
-                    weight: bevy::text::FontWeight::BOLD,
                     ..Default::default()
                 },
                 TextColor(Color::srgb(0.9, 0.8, 0.2)),

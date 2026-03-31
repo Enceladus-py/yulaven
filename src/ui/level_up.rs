@@ -6,6 +6,8 @@ use crate::{
 use bevy::prelude::*;
 use rand::seq::SliceRandom;
 
+const PIXEL_FONT_PATH: &str = "fonts/press_start_2p.ttf";
+
 #[derive(Component)]
 pub struct LevelUpMenu;
 
@@ -82,7 +84,7 @@ pub fn transition_to_levelup(
     }
 }
 
-pub fn spawn_levelup_menu(mut commands: Commands) {
+pub fn spawn_levelup_menu(mut commands: Commands, asset_server: Res<AssetServer>) {
     let mut rng = rand::thread_rng();
     let mut pool: Vec<UpgradeKind> = ALL_UPGRADES.to_vec();
     pool.shuffle(&mut rng);
@@ -98,7 +100,7 @@ pub fn spawn_levelup_menu(mut commands: Commands) {
                 justify_content: JustifyContent::Center,
                 position_type: PositionType::Absolute,
                 flex_direction: FlexDirection::Column,
-                row_gap: Val::VMin(2.0),
+                row_gap: Val::VMin(1.0),
                 ..Default::default()
             },
             BackgroundColor(Color::srgba(0.0, 0.0, 0.05, 0.85)),
@@ -110,24 +112,26 @@ pub fn spawn_levelup_menu(mut commands: Commands) {
             root.spawn((
                 Text::new("LEVEL UP!"),
                 TextFont {
-                    font_size: 32.0,
+                    font: asset_server.load(PIXEL_FONT_PATH),
+                    font_size: 24.0,
                     ..Default::default()
                 },
                 TextColor(Color::srgb(1.0, 0.85, 0.1)),
                 Node {
-                    margin: UiRect::bottom(Val::VMin(2.0)),
+                    margin: UiRect::bottom(Val::VMin(0.5)),
                     ..Default::default()
                 },
             ));
             root.spawn((
-                Text::new("Choose an upgrade"),
+                Text::new("Choose Upgrade"),
                 TextFont {
-                    font_size: 16.0,
+                    font: asset_server.load(PIXEL_FONT_PATH),
+                    font_size: 10.0,
                     ..Default::default()
                 },
                 TextColor(Color::srgb(0.7, 0.7, 0.8)),
                 Node {
-                    margin: UiRect::bottom(Val::VMin(3.0)),
+                    margin: UiRect::bottom(Val::VMin(2.0)),
                     ..Default::default()
                 },
             ));
@@ -135,32 +139,37 @@ pub fn spawn_levelup_menu(mut commands: Commands) {
             // Cards row
             root.spawn(Node {
                 flex_direction: FlexDirection::Row,
-                column_gap: Val::VMin(3.0),
+                justify_content: JustifyContent::Center,
+                column_gap: Val::VMin(2.0),
                 ..Default::default()
             })
             .with_children(|row| {
                 for kind in selected {
-                    spawn_upgrade_card(row, kind);
+                    spawn_upgrade_card(row, kind, &asset_server);
                 }
             });
         });
 }
 
-fn spawn_upgrade_card(parent: &mut ChildSpawnerCommands, kind: UpgradeKind) {
+fn spawn_upgrade_card(
+    parent: &mut ChildSpawnerCommands,
+    kind: UpgradeKind,
+    asset_server: &AssetServer,
+) {
     let accent = kind.accent_color();
     parent
         .spawn((
             Button,
             Node {
-                width: Val::VMin(24.0),
-                height: Val::VMin(32.0),
+                width: Val::VMin(26.0),
+                height: Val::VMin(28.0),
                 flex_direction: FlexDirection::Column,
                 align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
-                padding: UiRect::all(Val::VMin(2.0)),
+                padding: UiRect::all(Val::VMin(1.5)),
                 border: UiRect::all(Val::Px(2.0)),
-                border_radius: BorderRadius::all(Val::VMin(3.0)),
-                row_gap: Val::VMin(1.5),
+                border_radius: BorderRadius::all(Val::VMin(2.0)),
+                row_gap: Val::VMin(1.0),
                 ..Default::default()
             },
             BorderColor::all(accent),
@@ -168,25 +177,30 @@ fn spawn_upgrade_card(parent: &mut ChildSpawnerCommands, kind: UpgradeKind) {
             UpgradeButton { kind },
         ))
         .with_children(|card| {
-            // Icon / emoji label
+            // Upgrade label
             card.spawn((
                 Text::new(kind.label()),
                 TextFont {
-                    font_size: 18.0,
+                    font: asset_server.load(PIXEL_FONT_PATH),
+                    font_size: 12.0,
                     ..Default::default()
                 },
                 TextColor(accent),
+                Node {
+                    margin: UiRect::bottom(Val::VMin(0.5)),
+                    ..Default::default()
+                },
             ));
             // Description
             card.spawn((
                 Text::new(kind.description()),
                 TextFont {
-                    font_size: 13.0,
+                    font: asset_server.load(PIXEL_FONT_PATH),
+                    font_size: 8.0,
                     ..Default::default()
                 },
                 TextColor(Color::srgb(0.75, 0.75, 0.85)),
                 Node {
-                    margin: UiRect::top(Val::VMin(0.5)),
                     ..Default::default()
                 },
             ));
