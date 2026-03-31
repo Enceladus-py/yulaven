@@ -30,12 +30,12 @@ impl UpgradeKind {
     #[must_use]
     pub fn label(self) -> &'static str {
         match self {
-            Self::AttackSpeed => "⚡ Attack Speed",
-            Self::AttackDamage => "💥 Damage",
-            Self::MoveSpeed => "👟 Move Speed",
-            Self::MaxHealth => "❤️ Max Health",
-            Self::Magnet => "🧲 Gem Magnet",
-            Self::FireRange => "🎯 Fire Range",
+            Self::AttackSpeed => "ATK SPEED",
+            Self::AttackDamage => "DAMAGE",
+            Self::MoveSpeed => "MOVE SPD",
+            Self::MaxHealth => "MAX HP",
+            Self::Magnet => "MAGNET",
+            Self::FireRange => "FIRE RNG",
         }
     }
 

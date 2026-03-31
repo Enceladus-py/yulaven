@@ -7,6 +7,8 @@ pub enum GameState {
     MainMenu,
     /// Second screen — player picks their hero.
     CharacterSelect,
+    /// Detailed view of a character before selection.
+    CharacterDetail,
     Playing,
     LevelUp,
     Paused,

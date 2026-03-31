@@ -50,6 +50,7 @@ impl Plugin for UiPlugin {
                 Update,
                 (
                     character_select::handle_character_select,
+                    character_select::handle_select_hero,
                     character_select::highlight_character_card,
                 )
                     .run_if(in_state(crate::GameState::CharacterSelect)),

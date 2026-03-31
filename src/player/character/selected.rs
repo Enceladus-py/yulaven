@@ -44,9 +44,9 @@ impl SelectedCharacter {
     /// Returns a simple health indicator string
     pub fn health_indicator(self) -> &'static str {
         match self {
-            SelectedCharacter::Warlock => "♥♥♥",
-            SelectedCharacter::Mage => "♥♥",
-            SelectedCharacter::Archer => "♥",
+            SelectedCharacter::Warlock => "HP: High",
+            SelectedCharacter::Mage => "HP: Medium",
+            SelectedCharacter::Archer => "HP: Low",
         }
     }
 }
