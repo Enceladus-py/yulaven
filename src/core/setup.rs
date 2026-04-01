@@ -5,20 +5,43 @@ use crate::map::components::{Collider, Structure, StructureAssets, TerrainTile};
 use crate::player::components::{Player, PlayerAnimation, PlayerStats};
 
 #[allow(clippy::cast_precision_loss, clippy::too_many_lines)]
-pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+pub fn setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut texture_atlases: ResMut<Assets<TextureAtlasLayout>>,
+) {
     commands.spawn((Camera2d, MainCamera));
 
-    let pine_tree: Handle<Image> = asset_server.load("structures/pine_tree.png");
+    // Structure Spritesheets
+    // trees_sheet: 1280x1280, 64 trees in 8x8 grid (160x160 each)
+    let trees_sheet = asset_server.load("structures/trees_sheet.png");
+    let trees_layout = texture_atlases.add(TextureAtlasLayout::from_grid(
+        UVec2::new(160, 160),
+        8,
+        8,
+        None,
+        None,
+    ));
 
-    let mut stone_rocks = Vec::new();
-    for i in 0..16 {
-        stone_rocks.push(asset_server.load(format!("structures/stone_rock_{i}.png")));
-    }
+    // stones_sheet: 1024x1024, 64 stones in 8x8 grid (128x128 each)
+    let stones_sheet = asset_server.load("structures/stones_sheet.png");
+    let stones_layout = texture_atlases.add(TextureAtlasLayout::from_grid(
+        UVec2::new(128, 128),
+        8,
+        8,
+        None,
+        None,
+    ));
 
-    let mut ruined_pillars = Vec::new();
-    for i in 0..4 {
-        ruined_pillars.push(asset_server.load(format!("structures/ruined_pillar_{i}.png")));
-    }
+    // pillars_sheet 1024x1024, 64 pillars in 8x8 grid (128x128 each)
+    let pillars_sheet = asset_server.load("structures/pillars_sheet.png");
+    let pillars_layout = texture_atlases.add(TextureAtlasLayout::from_grid(
+        UVec2::new(128, 128),
+        8,
+        8,
+        None,
+        None,
+    ));
 
     let grass_terrain: Handle<Image> = asset_server.load_with_settings(
         "textures/grass_terrain.png",
@@ -83,16 +106,18 @@ pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         stone_terrain,
         sand_terrain,
         dark_grass_terrain,
-        pine_tree,
-        stone_rocks,
-        ruined_pillars,
+        trees_sheet,
+        trees_layout,
+        stones_sheet,
+        stones_layout,
+        pillars_sheet,
+        pillars_layout,
     });
 }
 
 #[allow(clippy::cast_precision_loss)]
 pub fn spawn_terrain(mut commands: Commands, assets: Res<StructureAssets>) {
     let terrain_handle = &assets.grass_terrain;
-    let pine_tree = &assets.pine_tree;
 
     for x in -1..=1 {
         for y in -1..=1 {
@@ -119,11 +144,14 @@ pub fn spawn_terrain(mut commands: Commands, assets: Res<StructureAssets>) {
                     for i in 0..20 {
                         parent.spawn((
                             Sprite {
-                                color: Color::srgb(0.4, 0.4, 0.4),
-                                image: pine_tree.clone(),
+                                image: assets.trees_sheet.clone(),
+                                texture_atlas: Some(TextureAtlas {
+                                    layout: assets.trees_layout.clone(),
+                                    index: 0,
+                                }),
                                 ..Default::default()
                             },
-                            Transform::from_xyz(0.0, 0.0, 1.0),
+                            Transform::from_xyz(0.0, 0.0, 1.0).with_scale(Vec3::splat(2.0)),
                             Structure { local_index: i },
                             Collider { radius: 100.0 },
                         ));

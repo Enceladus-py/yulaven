@@ -101,13 +101,23 @@ pub fn update_terrain(
                     str_transform.translation.z = 1.0 - (str_transform.translation.y / TILE_SIZE);
 
                     if rng_type < 0.6 {
-                        sprite.image = structure_assets.pine_tree.clone();
+                        sprite.image = structure_assets.trees_sheet.clone();
+                        sprite.texture_atlas = Some(TextureAtlas {
+                            layout: structure_assets.trees_layout.clone(),
+                            index: (pcg_hash(seed.wrapping_add(3)) * 64.0) as usize % 64,
+                        });
                     } else if rng_type < 0.9 {
-                        let idx = (pcg_hash(seed.wrapping_add(3)) * 16.0) as usize % 16;
-                        sprite.image = structure_assets.stone_rocks[idx].clone();
+                        sprite.image = structure_assets.stones_sheet.clone();
+                        sprite.texture_atlas = Some(TextureAtlas {
+                            layout: structure_assets.stones_layout.clone(),
+                            index: (pcg_hash(seed.wrapping_add(3)) * 64.0) as usize % 64,
+                        });
                     } else {
-                        let idx = (pcg_hash(seed.wrapping_add(3)) * 4.0) as usize % 4;
-                        sprite.image = structure_assets.ruined_pillars[idx].clone();
+                        sprite.image = structure_assets.pillars_sheet.clone();
+                        sprite.texture_atlas = Some(TextureAtlas {
+                            layout: structure_assets.pillars_layout.clone(),
+                            index: (pcg_hash(seed.wrapping_add(3)) * 64.0) as usize % 64,
+                        });
                     }
                 }
             }

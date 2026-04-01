@@ -23,7 +23,11 @@ pub struct StructureAssets {
     pub stone_terrain: Handle<Image>,
     pub sand_terrain: Handle<Image>,
     pub dark_grass_terrain: Handle<Image>,
-    pub pine_tree: Handle<Image>,
-    pub stone_rocks: Vec<Handle<Image>>,
-    pub ruined_pillars: Vec<Handle<Image>>,
+    // Spritesheets
+    pub trees_sheet: Handle<Image>,
+    pub trees_layout: Handle<TextureAtlasLayout>,
+    pub stones_sheet: Handle<Image>,
+    pub stones_layout: Handle<TextureAtlasLayout>,
+    pub pillars_sheet: Handle<Image>,
+    pub pillars_layout: Handle<TextureAtlasLayout>,
 }
