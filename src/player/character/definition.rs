@@ -34,7 +34,7 @@ pub struct CharacterDefinition {
 
 impl CharacterDefinition {
     pub const MAGE: Self = Self {
-        sprite_path: "outline/MiniMage.png",
+        sprite_path: "characters/MiniMage.png",
         display_name: "Mage",
         accent_color: Color::srgb(0.3, 0.6, 1.0),
         card_color: Color::srgb(0.1, 0.15, 0.35),
@@ -53,7 +53,7 @@ impl CharacterDefinition {
     };
 
     pub const ARCHER: Self = Self {
-        sprite_path: "outline/MiniArcherMan.png",
+        sprite_path: "characters/MiniArcherMan.png",
         display_name: "Archer",
         accent_color: Color::srgb(0.2, 0.9, 0.4),
         card_color: Color::srgb(0.08, 0.22, 0.1),
@@ -72,7 +72,7 @@ impl CharacterDefinition {
     };
 
     pub const WARLOCK: Self = Self {
-        sprite_path: "outline/MiniSwordMan.png",
+        sprite_path: "characters/MiniSwordMan.png",
         display_name: "Warlock",
         accent_color: Color::srgb(0.7, 0.2, 1.0),
         card_color: Color::srgb(0.18, 0.05, 0.28),

@@ -291,7 +291,7 @@ fn spawn_detail_panel(
     pixel_font: &Handle<Font>,
 ) {
     // Load default sprite
-    let sprite_path = "outline/MiniMage.png";
+    let sprite_path = "characters/MiniMage.png";
     let sprite_handle = asset_server.load(sprite_path);
     let atlas_layout = TextureAtlasLayout::from_grid(UVec2::splat(32), 12, 12, None, None);
     let atlas_handle = texture_atlases.add(atlas_layout);
