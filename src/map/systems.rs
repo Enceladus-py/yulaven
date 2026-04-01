@@ -34,6 +34,7 @@ pub fn update_terrain(
     >,
     structure_assets: Res<crate::map::components::StructureAssets>,
     _asset_server: Res<AssetServer>,
+    map_seed: Res<crate::map::components::MapSeed>,
 ) {
     let Ok(player_transform) = player_query.single() else {
         return;
@@ -68,8 +69,9 @@ pub fn update_terrain(
         transform.translation.y = target_y;
 
         if needs_refresh {
-            let base_seed = (terrain.logical_coord.x.wrapping_mul(73_856_093_i32))
-                ^ (terrain.logical_coord.y.wrapping_mul(19_349_663_i32));
+            let base_seed = ((terrain.logical_coord.x.wrapping_mul(73_856_093_i32))
+                ^ (terrain.logical_coord.y.wrapping_mul(19_349_663_i32)))
+                ^ (map_seed.0 as i32);
 
             let rng_terrain = pcg_hash(base_seed as u32);
             if rng_terrain < 0.3 {

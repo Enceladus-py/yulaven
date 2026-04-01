@@ -31,3 +31,6 @@ pub struct StructureAssets {
     pub pillars_sheet: Handle<Image>,
     pub pillars_layout: Handle<TextureAtlasLayout>,
 }
+
+#[derive(Resource, Default)]
+pub struct MapSeed(pub u32);
