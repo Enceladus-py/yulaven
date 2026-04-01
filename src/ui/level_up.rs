@@ -1,12 +1,11 @@
 use crate::{
     GameState,
+    constant::PIXEL_FONT_PATH,
     core::components::{DespawnNextFrame, Health},
     player::components::{LevelUpEvent, Player, PlayerStats},
 };
 use bevy::prelude::*;
 use rand::seq::SliceRandom;
-
-const PIXEL_FONT_PATH: &str = "fonts/press_start_2p.ttf";
 
 #[derive(Component)]
 pub struct LevelUpMenu;

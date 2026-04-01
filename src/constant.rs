@@ -1,3 +1,4 @@
+pub const PIXEL_FONT_PATH: &str = "fonts/press_start_2p.ttf";
 pub const PLAYER_SPEED: f32 = 500.0;
 pub const FIREBALL_START_SPEED: f32 = 1.0;
 pub const FIREBALL_SPEED_FACTOR: f32 = 200.0;

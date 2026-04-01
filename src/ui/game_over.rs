@@ -1,11 +1,10 @@
+use crate::constant::PIXEL_FONT_PATH;
 use crate::core::components::DespawnNextFrame;
 use crate::{
     GameState,
     player::components::{Player, PlayerStats},
 };
 use bevy::prelude::*;
-
-const PIXEL_FONT_PATH: &str = "fonts/press_start_2p.ttf";
 
 #[derive(Component)]
 pub struct GameOverMenu;
