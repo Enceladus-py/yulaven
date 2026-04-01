@@ -47,6 +47,7 @@ pub fn spawn_joystick(mut commands: Commands) {
             BackgroundColor(Color::srgba(1.0, 1.0, 1.0, 0.15)),
             GlobalZIndex(100),
             JoystickBase,
+            crate::ui::InGameUi,
         ))
         .with_children(|parent| {
             parent.spawn((
@@ -144,5 +145,28 @@ pub fn update_joystick(
                 }
             }
         }
+    }
+}
+
+/// Force-clears the joystick inputs and hides the visual UI.
+/// Useful when transitioning to a Paused state where touches might be interrupted.
+#[cfg(any(target_os = "android", target_os = "ios"))]
+pub fn reset_joystick_state(
+    mut finger: ResMut<JoystickFinger>,
+    mut joystick_input: ResMut<JoystickInput>,
+    mut base_query: Query<&mut Node, (With<JoystickBase>, Without<JoystickKnob>)>,
+    mut knob_query: Query<&mut Node, (With<JoystickKnob>, Without<JoystickBase>)>,
+) {
+    finger.touch_id = None;
+    finger.anchor = Vec2::ZERO;
+    joystick_input.direction = Vec2::ZERO;
+
+    if let Ok(mut base_node) = base_query.single_mut() {
+        base_node.display = Display::None;
+    }
+
+    if let Ok(mut knob_node) = knob_query.single_mut() {
+        knob_node.left = Val::Percent(50.0);
+        knob_node.top = Val::Percent(50.0);
     }
 }

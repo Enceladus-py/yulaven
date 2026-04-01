@@ -41,6 +41,7 @@ pub fn spawn_minimap_hud(mut commands: Commands) {
                 ..Default::default()
             },
             MinimapUi,
+            crate::ui::InGameUi,
         ))
         .with_children(|root| {
             root.spawn((
@@ -123,6 +124,7 @@ pub fn spawn_large_map(mut commands: Commands) {
             BorderColor::all(Color::srgb(0.5, 0.4, 0.2)),
             BackgroundColor(Color::srgb(0.1, 0.1, 0.1)),
             LargeMapUi,
+            crate::ui::InGameUi,
         ))
         .with_children(|map| {
             map.spawn(Node {

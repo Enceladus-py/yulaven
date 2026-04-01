@@ -43,14 +43,17 @@ pub fn build_mobile_hud(
 ) {
     // ── Top Left: Stats ────────────────────────────────────────────────────────
     commands
-        .spawn(Node {
-            position_type: PositionType::Absolute,
-            top: Val::VMin(4.0),
-            left: Val::VMin(4.0),
-            flex_direction: FlexDirection::Column,
-            row_gap: Val::VMin(1.5),
-            ..Default::default()
-        })
+        .spawn((
+            Node {
+                position_type: PositionType::Absolute,
+                top: Val::VMin(4.0),
+                left: Val::VMin(4.0),
+                flex_direction: FlexDirection::Column,
+                row_gap: Val::VMin(1.5),
+                ..Default::default()
+            },
+            crate::ui::InGameUi,
+        ))
         .with_children(|root| {
             // Level Badge
             root.spawn((
@@ -129,15 +132,18 @@ pub fn build_mobile_hud(
     });
 
     commands
-        .spawn(Node {
-            position_type: PositionType::Absolute,
-            bottom: Val::VMin(6.0),
-            right: Val::VMin(6.0),
-            flex_direction: FlexDirection::Row,
-            align_items: AlignItems::FlexEnd,
-            column_gap: Val::VMin(4.0),
-            ..Default::default()
-        })
+        .spawn((
+            Node {
+                position_type: PositionType::Absolute,
+                bottom: Val::VMin(6.0),
+                right: Val::VMin(6.0),
+                flex_direction: FlexDirection::Row,
+                align_items: AlignItems::FlexEnd,
+                column_gap: Val::VMin(4.0),
+                ..Default::default()
+            },
+            crate::ui::InGameUi,
+        ))
         .with_children(|root| {
             let icon_path = match *character {
                 SelectedCharacter::Mage | SelectedCharacter::Archer => "ui/blink_icon.png",

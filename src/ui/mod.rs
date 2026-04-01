@@ -7,6 +7,7 @@ pub mod joystick;
 pub mod level_up;
 pub mod main_menu;
 pub mod map_ui;
+pub mod pause_menu;
 
 // Re-export common UI components/markers if needed widely
 pub use game_over::*;
@@ -18,6 +19,11 @@ pub use map_ui::*;
 /// Shared resource holding the pixel font used across all UI screens.
 #[derive(Resource)]
 pub struct PixelFont(pub Handle<Font>);
+
+/// Marker placed on every root UI node spawned during in-game HUD setup.
+/// Querying `With<InGameUi>` lets us cleanly despawn ALL HUD roots on exit.
+#[derive(Component)]
+pub struct InGameUi;
 
 pub struct UiPlugin;
 
@@ -66,6 +72,7 @@ impl Plugin for UiPlugin {
                     hud::build_mobile_hud,
                     map_ui::spawn_minimap_hud,
                     map_ui::spawn_large_map,
+                    pause_menu::spawn_pause_button,
                 ),
             )
             .add_systems(
@@ -75,12 +82,30 @@ impl Plugin for UiPlugin {
                     map_ui::toggle_map,
                     map_ui::update_map,
                     map_ui::update_minimap_enemy_blips,
+                    pause_menu::handle_pause_button,
                 )
                     .run_if(in_state(crate::GameState::Playing)),
             )
             .add_systems(
                 Update,
                 level_up::transition_to_levelup.run_if(in_state(crate::GameState::Playing)),
+            )
+            // ── Pause Menu ────────────────────────────────────────────────────────
+            .add_systems(
+                OnEnter(crate::GameState::Paused),
+                (
+                    pause_menu::spawn_pause_menu,
+                    #[cfg(any(target_os = "android", target_os = "ios"))]
+                    joystick::reset_joystick_state,
+                ),
+            )
+            .add_systems(
+                Update,
+                (
+                    pause_menu::handle_pause_menu,
+                    pause_menu::animate_pause_buttons,
+                )
+                    .run_if(in_state(crate::GameState::Paused)),
             );
 
         #[cfg(any(target_os = "android", target_os = "ios"))]
