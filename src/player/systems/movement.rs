@@ -3,10 +3,7 @@ use bevy::prelude::*;
 use super::super::components::{Player, PlayerAnimation, PlayerStats};
 use crate::map::components::{Collider, Structure};
 use crate::ui::JoystickInput;
-use crate::{
-    constant::{ARENA_RADIUS, PLAYER_SPEED},
-    core::components::MainCamera,
-};
+use crate::{constant::PLAYER_SPEED, core::components::MainCamera};
 
 /// System for moving the player based on keyboard and joystick input.
 #[allow(clippy::type_complexity)]
@@ -91,12 +88,6 @@ pub fn move_player(
                     new_translation += (push_dir * depth).extend(0.0);
                 }
             }
-
-            // Keep the player inside the arena boundary
-            if new_translation.truncate().length_squared() > ARENA_RADIUS * ARENA_RADIUS {
-                new_translation = new_translation.truncate().normalize().extend(0.0) * ARENA_RADIUS;
-            }
-
             player_transform.translation = new_translation;
             player.facing_direction = facing_direction;
 

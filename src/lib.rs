@@ -42,7 +42,7 @@ pub fn run_game() {
 
     let default_plugins = DefaultPlugins
         .set(LogPlugin {
-            level: Level::DEBUG,
+            level: Level::INFO,
             ..default()
         })
         .set(ImagePlugin::default_nearest())
